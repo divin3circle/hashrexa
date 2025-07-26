@@ -66,7 +66,7 @@ function Features() {
         We envision a decentralized future ecosystem where users can unify their
         traditional assets with their digital assets.
       </motion.p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 xl:grid-cols-4 mt-10">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 xl:grid-cols-4 mt-10">
         {features.map((feature) => (
           <motion.div
             key={feature.id}

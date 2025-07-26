@@ -27,7 +27,7 @@ const socials = [
 
 function Footer() {
   return (
-    <div className="flex flex-col md:flex-row items-center mt-16 rounded-4xl bg-gray-100 w-full md:h-[300px]">
+    <div className="flex flex-col md:flex-row items-center mt-16 rounded-4xl bg-gray-100 w-full md:h-[300px] mb-4">
       <div className="flex flex-col gap-2 md:w-1/4 p-2">
         <motion.h1
           className="text-md font-bold font-ubuntu-sans text-center rounded-2xl py-1 px-4 border border-primary w-fit my-4"
