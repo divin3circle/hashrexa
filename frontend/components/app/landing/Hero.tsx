@@ -4,11 +4,11 @@ import React from "react";
 import hedera from "@/public/hedera.png";
 import alpaca from "@/public/alpaca.png";
 import graphs from "@/public/stocks.json";
+import Lottie from "lottie-react";
 import { FaFireFlameCurved } from "react-icons/fa6";
 import Image from "next/image";
-import Lottie from "lottie-react";
 import { motion } from "framer-motion";
-import { TextGenerateEffect } from "../ui/text-generate-effect";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 
 const words = `Bringing the world closer to the blockchain via decentralized finance`;
 
