@@ -13,14 +13,14 @@ import {
 
 const queryClient = new QueryClient();
 
-const hederaEVMAdapter = new HederaAdapter({
-  projectId,
-  networks: [
-    HederaChainDefinition.EVM.Mainnet,
-    HederaChainDefinition.EVM.Testnet,
-  ],
-  namespace: "eip155",
-});
+// const hederaEVMAdapter = new HederaAdapter({
+//   projectId,
+//   networks: [
+//     HederaChainDefinition.EVM.Mainnet,
+//     HederaChainDefinition.EVM.Testnet,
+//   ],
+//   namespace: "eip155",
+// });
 
 const hederaNativeAdapter = new HederaAdapter({
   projectId,
@@ -48,7 +48,7 @@ const generalConfig = {
 
 // Create modal
 createAppKit({
-  adapters: [hederaEVMAdapter, hederaNativeAdapter],
+  adapters: [hederaNativeAdapter],
   universalProvider,
   ...generalConfig,
   features: {

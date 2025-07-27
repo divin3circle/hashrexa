@@ -21,7 +21,10 @@ function Hero() {
         <h1 className="text-4xl font-bold font-ubuntu-sans text-center">
           Welcome to Hashrexa
         </h1>
-        <TextGenerateEffect words={words} className="text-primary" />
+        <TextGenerateEffect
+          words={words}
+          className="text-primary text-center font-light "
+        />
       </motion.section>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
