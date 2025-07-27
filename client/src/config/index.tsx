@@ -18,8 +18,8 @@ export const metadata = {
 
 // for custom networks visit -> https://docs.reown.com/appkit/react/core/custom-networks
 export const networks = [
-  HederaChainDefinition.Native.Testnet,
   HederaChainDefinition.EVM.Mainnet,
   HederaChainDefinition.EVM.Testnet,
   HederaChainDefinition.Native.Mainnet,
+  HederaChainDefinition.Native.Testnet,
 ] as [AppKitNetwork, ...AppKitNetwork[]];

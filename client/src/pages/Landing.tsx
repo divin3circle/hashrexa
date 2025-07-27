@@ -7,8 +7,11 @@ import Mission from "@/components/app/landing/Mission";
 import Features from "@/components/app/landing/Features";
 import CTA from "@/components/app/landing/CTA";
 import Footer from "@/components/app/landing/Footer";
+import { useAppKitAccount } from "@reown/appkit/react-core";
 
 export default function Home() {
+  const { address, isConnected } = useAppKitAccount();
+  console.log(address, isConnected);
   return (
     <div className="max-w-6xl mx-auto px-2">
       <Navbar />
