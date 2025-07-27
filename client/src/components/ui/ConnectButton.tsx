@@ -5,7 +5,7 @@ export default function ConnectButton() {
   return (
     <button
       className="bg-[#ff9494] text-white font-bold text-md rounded-full py-2 px-4 lowercase"
-      onClick={() => open}
+      onClick={() => open()}
     >
       connect wallet
     </button>

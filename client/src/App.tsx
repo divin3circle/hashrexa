@@ -10,7 +10,6 @@ import {
   hederaNamespace,
   HederaProvider,
 } from "@hashgraph/hedera-wallet-connect";
-import type UniversalProvider from "@walletconnect/universal-provider";
 
 const queryClient = new QueryClient();
 
@@ -32,10 +31,10 @@ const hederaNativeAdapter = new HederaAdapter({
   namespace: hederaNamespace,
 });
 
-const universalProvider = (await HederaProvider.init({
+const universalProvider = await HederaProvider.init({
   projectId: projectId,
   metadata,
-})) as unknown as UniversalProvider;
+});
 
 const generalConfig = {
   projectId,
@@ -50,7 +49,6 @@ const generalConfig = {
 // Create modal
 createAppKit({
   adapters: [hederaEVMAdapter, hederaNativeAdapter],
-  //@ts-expect-error expected type error
   universalProvider,
   ...generalConfig,
   features: {

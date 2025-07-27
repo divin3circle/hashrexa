@@ -12,7 +12,7 @@ if (!projectId) {
 export const metadata = {
   name: "Hashrexa",
   description: "Hashrexa",
-  url: "http://localhost:5173/", // origin must match your domain & subdomain
+  url: "http://localhost:5173/",
   icons: [logo],
 };
 
