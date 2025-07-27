@@ -16,3 +16,7 @@ Users but actual stock assets in the realn world and have them stored in a bank 
 1. User can then call finishRedeem to get their USDC
 
 ### Backend setup
+
+#### Register User
+
+The user conncets their wallet and after filling out some fields they are propmted to create to create topic after being funded some HBAR. The topic created includes the 1st message containing the user details at sign up. After topic creation the endpoint `/auth/register/{userAccountId}/{topicId}` is called. The controller saves and keeps a K-V store of the user's account id to their topic id where they can submit messages to in a badgerdb
