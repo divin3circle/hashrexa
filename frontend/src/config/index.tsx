@@ -20,6 +20,8 @@ export const metadata = {
 export const networks = [
   // HederaChainDefinition.EVM.Mainnet,
   // HederaChainDefinition.EVM.Testnet,
-  HederaChainDefinition.Native.Mainnet,
+  // HederaChainDefinition.Native.Mainnet,
   HederaChainDefinition.Native.Testnet,
 ] as [AppKitNetwork, ...AppKitNetwork[]];
+
+export const BACKEND_URL = "http://localhost:3000/";

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { FaGithub, FaPlus, FaDiscord, FaTwitter } from "react-icons/fa6";
+import { FaGithub, FaDiscord, FaTwitter } from "react-icons/fa6";
 import footer from "../../../../public/footer.png";
 import graphs from "../../../../public/stocks.json";
 import Lottie from "lottie-react";
+import ConnectButton from "@/components/ui/ConnectButton";
 
 const socials = [
   {
@@ -43,21 +43,9 @@ function Footer() {
         >
           Join the Future of Assets Management Today!
         </motion.p>
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            delay: 0.2,
-            duration: 0.6,
-            ease: "easeOut",
-          }}
-          className={cn(
-            "bg-[#ff9494] mt-8 text-white px-4 py-2 rounded-lg lowercase text-sm flex items-center gap-2 w-fit"
-          )}
-        >
-          create an account
-          <FaPlus />
-        </motion.button>
+        <div className="my-4 flex items-center justify-center w-full">
+          <ConnectButton />
+        </div>
       </div>
       <div className="flex relative flex-col md:flex-row gap-2 w-full md:w-3/4 bg-[#ff9494] h-full rounded-b-4xl md:rounded-r-4xl md:rounded-bl-none">
         <img

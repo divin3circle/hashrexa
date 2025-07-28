@@ -10,6 +10,7 @@ import {
   hederaNamespace,
   HederaProvider,
 } from "@hashgraph/hedera-wallet-connect";
+import Setup from "./pages/Setup";
 
 const queryClient = new QueryClient();
 
@@ -25,7 +26,7 @@ const queryClient = new QueryClient();
 const hederaNativeAdapter = new HederaAdapter({
   projectId,
   networks: [
-    HederaChainDefinition.Native.Mainnet,
+    // HederaChainDefinition.Native.Mainnet,
     HederaChainDefinition.Native.Testnet,
   ],
   namespace: hederaNamespace,
@@ -64,6 +65,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/setup" element={<Setup />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

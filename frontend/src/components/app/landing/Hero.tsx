@@ -5,7 +5,7 @@ import Lottie from "lottie-react";
 import { FaFireFlameCurved } from "react-icons/fa6";
 
 import { motion } from "framer-motion";
-import { TextGenerateEffect } from "../../../components/ui/text-generate-effect";
+import { TextGenerateEffect } from "../../ui/text-generate-effect";
 
 const words = `Bringing the world closer to the blockchain via decentralized finance`;
 
