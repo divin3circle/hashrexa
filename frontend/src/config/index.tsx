@@ -1,5 +1,4 @@
 import type { AppKitNetwork } from "@reown/appkit/networks";
-import logo from "../../public/favicon.ico";
 import { HederaChainDefinition } from "@hashgraph/hedera-wallet-connect";
 
 // Get projectId from https://cloud.reown.com
@@ -13,7 +12,7 @@ export const metadata = {
   name: "Hashrexa",
   description: "Hashrexa",
   url: "http://localhost:5173/",
-  icons: [logo],
+  icons: ["http://localhost:5173/favicon.ico"],
 };
 
 // for custom networks visit -> https://docs.reown.com/appkit/react/core/custom-networks

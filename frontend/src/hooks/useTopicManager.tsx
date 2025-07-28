@@ -3,12 +3,13 @@ import {
   HederaJsonRpcMethod,
   HederaChainId,
   transactionToBase64String,
-  queryToBase64String,
   SignAndExecuteTransactionResult,
 } from "@hashgraph/hedera-wallet-connect";
 import {
+  AccountId,
   LedgerId,
   TopicCreateTransaction,
+  TransactionId,
   TransactionReceiptQuery,
 } from "@hashgraph/sdk";
 import { BACKEND_URL, metadata, projectId } from "@/config";
@@ -75,6 +76,7 @@ export async function createTopic(
   if (!accountId) {
     return;
   }
+
   const dAppConnector = new DAppConnector(
     metadata,
     LedgerId.TESTNET,
@@ -87,16 +89,25 @@ export async function createTopic(
 
   await dAppConnector.openModal();
 
-  const topicTx = new TopicCreateTransaction().setTopicMemo(
-    "My new topic via WalletConnect"
-  );
+  // Generate a transaction ID and set it on the transaction
+  const signer = dAppConnector.getSigner(AccountId.fromString(accountId));
+  const transactionId = TransactionId.generate(accountId);
+  const topicTx = new TopicCreateTransaction()
+    .setTransactionId(transactionId)
+    .setTopicMemo("My new topic via WalletConnect");
 
   const result = await dAppConnector.signAndExecuteTransaction({
     signerAccountId: accountId,
     transactionList: transactionToBase64String(topicTx),
   });
+  const receiptQuery = new TransactionReceiptQuery().setTransactionId(
+    transactionId
+  );
+  const receipt = await receiptQuery.executeWithSigner(signer);
+  const topicId = receipt.topicId?.toString();
 
-  console.log("Result", result);
+  console.log("Topic Id:", topicId);
+  //TODO:call the register endpoint from the backend to register the topic id
 
   return result;
 }
