@@ -23,4 +23,4 @@ export const networks = [
   HederaChainDefinition.Native.Testnet,
 ] as [AppKitNetwork, ...AppKitNetwork[]];
 
-export const BACKEND_URL = "http://localhost:3000/";
+export const BACKEND_URL = "http://localhost:8080";

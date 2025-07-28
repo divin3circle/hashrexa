@@ -23,7 +23,7 @@ type Application struct {
 func NewApplication() (*Application, error) {
 	err := godotenv.Load(".env")
     if err != nil {
-        panic(fmt.Errorf("Unable to load environment variables from demo.env file. Error:\n%v\n", err))
+        panic(fmt.Errorf("unable to load environment variables from env file error %v", err))
     }
     MY_ACCOUNT_ID := os.Getenv("MY_ACCOUNT_ID")
     MY_PRIVATE_KEY := os.Getenv("MY_PRIVATE_KEY")
@@ -50,7 +50,7 @@ func NewApplication() (*Application, error) {
 
 	app := &Application{
 		Logger: logger,
-		UserHandler: api.NewUserHandler(),
+		UserHandler: api.NewUserHandler(db, client),
 		DB: db,
 		Client: client,
 	}

@@ -3,7 +3,6 @@ import {
   HederaJsonRpcMethod,
   HederaChainId,
   transactionToBase64String,
-  SignAndExecuteTransactionResult,
 } from "@hashgraph/hedera-wallet-connect";
 import {
   AccountId,
@@ -27,10 +26,14 @@ export function useTopicManager() {
 
   const { mutate: createTopicMutation, isPending } = useMutation({
     mutationFn: async () => createTopic(address),
-    onSuccess: () => {
+    onSuccess: async (topicId) => {
       queryClient.invalidateQueries({ queryKey: ["topic", address] });
       console.log("Topic created");
-      navigate("/home");
+      console.log("Topic Id:", topicId);
+      const success = await registerTopic(address, topicId);
+      if (success) {
+        navigate("/home");
+      }
     },
     onError: (error) => {
       console.error("Error creating topic", error);
@@ -69,15 +72,46 @@ async function checkTopicExists(
     return false;
   }
   const data = await fetch(`${BACKEND_URL}/topics/exists/${accountId}`);
+
+  if (data.status === 404) {
+    return false;
+  }
+
+  if (!data.ok) {
+    console.error("Failed to check topic exists:", data.status);
+    return false;
+  }
+
   const json = await data.json();
   return json.exists;
 }
 
+async function registerTopic(
+  userAccountId: string | undefined,
+  topicId: string | undefined
+) {
+  if (!userAccountId || !topicId) {
+    console.error("No user account id or topic id");
+    return false;
+  }
+  const data = await fetch(
+    `${BACKEND_URL}/auth/register/${userAccountId}/${topicId}`,
+    {
+      method: "POST",
+    }
+  );
+  if (!data.ok) {
+    console.error("Failed to register topic:", data.status);
+    return false;
+  }
+  const json = await data.json();
+  console.log("Topic registered", json);
+  return json.success;
+}
+
 export async function createTopic(
   accountId: string | undefined
-): Promise<
-  (SignAndExecuteTransactionResult & { topicId?: string }) | undefined
-> {
+): Promise<string | undefined> {
   if (!accountId) {
     return;
   }
@@ -100,20 +134,18 @@ export async function createTopic(
   const topicTx = new TopicCreateTransaction()
     .setTransactionId(transactionId)
     .setTopicMemo("My new topic via WalletConnect")
-    .setAdminKey(PublicKey.fromString(PUBLIC_KEY));
+    .setSubmitKey(PublicKey.fromString(PUBLIC_KEY));
 
   const result = await dAppConnector.signAndExecuteTransaction({
     signerAccountId: accountId,
     transactionList: transactionToBase64String(topicTx),
   });
+  console.log("Result:", result);
   const receiptQuery = new TransactionReceiptQuery().setTransactionId(
     transactionId
   );
   const receipt = await receiptQuery.executeWithSigner(signer);
   const topicId = receipt.topicId?.toString();
 
-  console.log("Topic Id:", topicId);
-  //TODO:call the register endpoint from the backend to register the topic id
-
-  return result;
+  return topicId;
 }
