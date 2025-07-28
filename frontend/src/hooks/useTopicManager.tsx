@@ -3,9 +3,14 @@ import {
   HederaJsonRpcMethod,
   HederaChainId,
   transactionToBase64String,
+  queryToBase64String,
   SignAndExecuteTransactionResult,
 } from "@hashgraph/hedera-wallet-connect";
-import { LedgerId, TopicCreateTransaction } from "@hashgraph/sdk";
+import {
+  LedgerId,
+  TopicCreateTransaction,
+  TransactionReceiptQuery,
+} from "@hashgraph/sdk";
 import { BACKEND_URL, metadata, projectId } from "@/config";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +24,7 @@ export function useTopicManager() {
     mutationFn: async () => createTopic(address),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topic", address] });
+      console.log("Topic created");
     },
     onError: (error) => {
       console.error("Error creating topic", error);
@@ -63,7 +69,9 @@ async function checkTopicExists(
 
 export async function createTopic(
   accountId: string | undefined
-): Promise<SignAndExecuteTransactionResult | undefined> {
+): Promise<
+  (SignAndExecuteTransactionResult & { topicId?: string }) | undefined
+> {
   if (!accountId) {
     return;
   }
@@ -87,6 +95,8 @@ export async function createTopic(
     signerAccountId: accountId,
     transactionList: transactionToBase64String(topicTx),
   });
+
+  console.log("Result", result);
 
   return result;
 }
