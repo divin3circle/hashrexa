@@ -15,17 +15,20 @@ import {
 import { BACKEND_URL, metadata, projectId } from "@/config";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 export function useTopicManager() {
   const { address } = useAppKitAccount();
   const { topicExists, error } = useTopicExists();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { mutate: createTopicMutation, isPending } = useMutation({
     mutationFn: async () => createTopic(address),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topic", address] });
       console.log("Topic created");
+      navigate("/home");
     },
     onError: (error) => {
       console.error("Error creating topic", error);
