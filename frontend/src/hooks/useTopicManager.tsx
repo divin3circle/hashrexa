@@ -8,6 +8,7 @@ import {
 import {
   AccountId,
   LedgerId,
+  PublicKey,
   TopicCreateTransaction,
   TransactionId,
   TransactionReceiptQuery,
@@ -16,6 +17,7 @@ import { BACKEND_URL, metadata, projectId } from "@/config";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { PUBLIC_KEY } from "@/lib/utils";
 
 export function useTopicManager() {
   const { address } = useAppKitAccount();
@@ -97,7 +99,8 @@ export async function createTopic(
   const transactionId = TransactionId.generate(accountId);
   const topicTx = new TopicCreateTransaction()
     .setTransactionId(transactionId)
-    .setTopicMemo("My new topic via WalletConnect");
+    .setTopicMemo("My new topic via WalletConnect")
+    .setAdminKey(PublicKey.fromString(PUBLIC_KEY));
 
   const result = await dAppConnector.signAndExecuteTransaction({
     signerAccountId: accountId,
