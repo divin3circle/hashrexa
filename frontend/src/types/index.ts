@@ -12,5 +12,20 @@ export interface User {
   createdAt: string;
   profilePicture: string;
   loan_status: LoanStatus[];
-  updatedAt: number;
+  updatedAt: string;
+}
+
+export interface Stock {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  logo: string;
+}
+
+export interface TokenizedAssets {
+  stock: Stock;
+  amount: number;
+  health: number;
 }

@@ -1,0 +1,58 @@
+import useStocks from "@/hooks/useStocks";
+
+function Stocks() {
+  const { data, isLoading, error } = useStocks();
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  if (!data) return <div>No data</div>;
+
+  return (
+    <div className="mt-10 ">
+      <div className="flex flex-col items-center justify-center md:flex-row md:justify-between gap-2">
+        {data.map((stock) => (
+          <div
+            key={stock.symbol}
+            className="flex flex-col gap-4 border-1 border-gray-200 rounded-3xl p-3 h-[150px] md:w-[300px] w-full"
+          >
+            <div className="flex items-center gap-2 mt-1">
+              <img
+                src={stock.logo}
+                alt={stock.name}
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="flex flex-col">
+                <p className="text-xl font-bold">{stock.symbol}</p>
+                <p className="text-sm text-gray-400">{stock.name}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+              <p
+                className={`text-xl font-bold ${
+                  stock.change > 0 ? "text-green-500" : "text-red-500"
+                }`}
+              >
+                $
+                {stock.price.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <p
+                className={`text-sm p-0.5 rounded-full border w-fit px-2 text-center ${
+                  stock.change > 0
+                    ? "border-green-500 text-green-500"
+                    : "border-red-500 text-red-500"
+                }`}
+              >
+                {stock.change > 0 ? "+" : ""}${stock.change} (
+                {stock.changePercent}%)
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default Stocks;

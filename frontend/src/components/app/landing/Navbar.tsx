@@ -6,7 +6,7 @@ function Navbar() {
   const pathname = useLocation();
   return (
     <div className="flex items-center justify-between mt-4">
-      <div className="flex items-center justify-between min-w-[400px] md:min-w-[600px]">
+      <div className="flex items-center justify-between min-w-[300px] md:min-w-[600px]">
         <h1 className="font-bold font-mono p-1.5 md:p-0 uppercase">
           <span className="text-[#ff9494] text-3xl lowercase">hash</span>rexa.
         </h1>
