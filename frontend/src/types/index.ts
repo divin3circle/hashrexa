@@ -27,5 +27,18 @@ export interface Stock {
 export interface TokenizedAssets {
   stock: Stock;
   amount: number;
-  health: number;
+}
+
+export interface StockHistoricalPrice {
+  date: string;
+  price: number;
+}
+
+export interface FullLoanDetails {
+  collateralTokenImage: string;
+  collateralTokenSymbol: string;
+  borrowedToken: string;
+  borrowedTokenImage: string;
+  apy: number;
+  borrowedAmount: number;
 }
