@@ -26,6 +26,7 @@ type User struct {
 	CreatedAt string `json:"createdAt"`
 	ProfilePicture string `json:"profilePicture"`
 	LoanStatus []LoanStatus `json:"loan_status"`
+	UpdatedAt string `json:"updatedAt"`
 }
 
 type UserHandler struct {
@@ -70,6 +71,7 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 				APY: 0,
 			},
 		},
+		UpdatedAt: time.Now().Format(time.RFC3339),
 	}
 	
 	topicID, err := hedera.TopicIDFromString(topicId)
