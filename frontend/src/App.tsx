@@ -12,6 +12,8 @@ import {
 } from "@hashgraph/hedera-wallet-connect";
 import Setup from "./pages/Setup";
 import Home from "./pages/Home";
+import Loans from "./pages/Loans";
+import Wallet from "./pages/Wallet";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ export function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/loans" element={<Loans />} />
+          <Route path="/wallet" element={<Wallet />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

@@ -60,14 +60,14 @@ const TSLA = {
 };
 
 export const TOKENIZED_ASSETS: TokenizedAssets[] = [
-  {
-    stock: AAPL,
-    amount: 10,
-  },
-  {
-    stock: TSLA,
-    amount: 10,
-  },
+  // {
+  //   stock: AAPL,
+  //   amount: 10,
+  // },
+  // {
+  //   stock: TSLA,
+  //   amount: 10,
+  // },
 ];
 
 export const MOCK_STOCK_HISTORICAL_PRICE: StockHistoricalPrice[] = [
@@ -165,11 +165,13 @@ export const MOCK_STOCK_HISTORICAL_PRICE: StockHistoricalPrice[] = [
 ];
 
 export const MOCK_LOAN_STATUS: LoanStatus[] = [
-  {
-    borrowed_amount: 10,
-    borrowed_token: "USDC",
-    collateral_amount: 10,
-    collateral_token: "AAPL",
-    apy: 5,
-  },
+  // {
+  //   borrowed_amount: 10,
+  //   borrowed_token: "USDC",
+  //   collateral_amount: 10,
+  //   collateral_token: "AAPL",
+  //   apy: 5,
+  // },
 ];
+
+export const MOCK_PORTFOLIO_BALANCE: number = 100000.08;

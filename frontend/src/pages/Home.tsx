@@ -72,8 +72,8 @@ function Home() {
                 ))}
 
               {TOKENIZED_ASSETS.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-sm font-semibold">
+                <div className="flex flex-col items-center justify-center h-[150px]">
+                  <p className="text-sm font-light text-gray-400">
                     You don't have any tokenized stocks yet
                   </p>
                 </div>
@@ -148,8 +148,8 @@ function Home() {
                 ))}
 
               {loans.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-sm font-semibold">
+                <div className="flex flex-col items-center justify-center h-[150px]">
+                  <p className="text-sm font-light text-gray-400">
                     You don't have any loans yet
                   </p>
                 </div>
