@@ -3,6 +3,7 @@ import {
   LoanStatus,
   Stock,
   StockHistoricalPrice,
+  Token,
   TokenizedAssets,
 } from "@/types";
 
@@ -38,6 +39,44 @@ export const MOCK_STOCKS: Stock[] = [
     change: 50.0,
     changePercent: 1.67,
     logo: STOCK_LOGOS.AMZN,
+  },
+];
+
+export const MOCK_TOKENS: Token[] = [
+  {
+    symbol: "HBAR",
+    name: "Hedera",
+    amount: 0,
+    valueUSD: 0.245,
+    icon: STOCK_LOGOS.HEDERA,
+  },
+  {
+    symbol: "HASH",
+    name: "HASH",
+    amount: 0,
+    valueUSD: 0.996,
+    icon: STOCK_LOGOS.HASH,
+  },
+  {
+    symbol: "dAAPL",
+    name: "Apple Inc",
+    amount: 10,
+    valueUSD: 231.45,
+    icon: STOCK_LOGOS.AAPL,
+  },
+  {
+    symbol: "dTSLA",
+    name: "Tesla Inc",
+    amount: 2,
+    valueUSD: 100.145,
+    icon: STOCK_LOGOS.TSLA,
+  },
+  {
+    symbol: "dNFLX",
+    name: "Netflix Inc",
+    amount: 10,
+    valueUSD: 23.495,
+    icon: STOCK_LOGOS.NFLX,
   },
 ];
 

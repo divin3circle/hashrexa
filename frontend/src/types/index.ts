@@ -24,6 +24,14 @@ export interface Stock {
   logo: string;
 }
 
+export interface Token {
+  symbol: string;
+  name: string;
+  amount: number;
+  valueUSD: number;
+  icon: string;
+}
+
 export interface TokenizedAssets {
   stock: Stock;
   amount: number;
