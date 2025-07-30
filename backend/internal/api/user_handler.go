@@ -9,7 +9,7 @@ import (
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/go-chi/chi/v5"
-	"github.com/hashgraph/hedera-sdk-go"
+	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 )
 
 type LoanStatus struct {
@@ -19,6 +19,10 @@ type LoanStatus struct {
 	BorrowedAmount float64 `json:"borrowed_amount"`
 	APY float64 `json:"apy"`
 }
+type TokenizedAsset struct {
+	Symbol string `json:"symbol"`
+	ValueUSD float64 `json:"valueUSD"`
+}
 
 type User struct {
 	UserAccountId string `json:"userAccountId"`
@@ -26,15 +30,16 @@ type User struct {
 	CreatedAt string `json:"createdAt"`
 	ProfilePicture string `json:"profilePicture"`
 	LoanStatus []LoanStatus `json:"loan_status"`
+	TokenizedAssets []TokenizedAsset `json:"tokenized_assets"`
 	UpdatedAt string `json:"updatedAt"`
 }
 
 type UserHandler struct {
 	DB *badger.DB
-	Client *hedera.Client
+	Client *hiero.Client
 }
 
-func NewUserHandler(db *badger.DB, client *hedera.Client) *UserHandler {
+func NewUserHandler(db *badger.DB, client *hiero.Client) *UserHandler {
 	return &UserHandler{DB: db, Client: client}
 }
 
@@ -71,10 +76,16 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 				APY: 0,
 			},
 		},
+		TokenizedAssets: []TokenizedAsset{
+			{
+				Symbol: "",
+				ValueUSD: 0,
+			},
+		},
 		UpdatedAt: time.Now().Format(time.RFC3339),
 	}
 	
-	topicID, err := hedera.TopicIDFromString(topicId)
+	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
 		http.Error(w, "Failed to convert topic ID to Hedera topic ID", http.StatusInternalServerError)
 		return
@@ -85,7 +96,7 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	
-	topicMsgSubmitTx := hedera.NewConsensusMessageSubmitTransaction().
+	topicMsgSubmitTx := hiero.NewTopicMessageSubmitTransaction().
 		SetTopicID(topicID).
 		SetMessage(marshaledUser)
 	

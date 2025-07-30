@@ -9,6 +9,7 @@ import (
 
 	"github.com/divin3circle/hashrexa/backend/internal/app"
 	"github.com/divin3circle/hashrexa/backend/internal/routes"
+	"github.com/divin3circle/hashrexa/backend/internal/scripts"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 		log.Fatalf("Failed to create application: %v", err)
 		panic(err)
 	}
-
+	scripts.Aapl()
 	defer app.DB.Close()
 
 	r := routes.SetUpRoutes(app)

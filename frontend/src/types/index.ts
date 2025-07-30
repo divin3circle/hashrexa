@@ -6,12 +6,18 @@ export interface LoanStatus {
   apy: number;
 }
 
+export interface TokenizedAsset {
+  symbol: string;
+  valueUSD: number;
+}
+
 export interface User {
   userAccountId: string;
   topicId: string;
   createdAt: string;
   profilePicture: string;
   loan_status: LoanStatus[];
+  tokenized_assets: TokenizedAsset[];
   updatedAt: string;
 }
 

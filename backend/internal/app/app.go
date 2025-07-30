@@ -9,7 +9,7 @@ import (
 	badger "github.com/dgraph-io/badger/v4"
 	"github.com/divin3circle/hashrexa/backend/internal/api"
 	"github.com/divin3circle/hashrexa/backend/internal/store"
-	"github.com/hashgraph/hedera-sdk-go"
+	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"github.com/joho/godotenv"
 )
 
@@ -17,7 +17,7 @@ type Application struct {
 	Logger *log.Logger
 	UserHandler *api.UserHandler
 	DB *badger.DB
-	Client *hedera.Client
+	Client *hiero.Client
 }
 
 func NewApplication() (*Application, error) {
@@ -28,17 +28,17 @@ func NewApplication() (*Application, error) {
     MY_ACCOUNT_ID := os.Getenv("MY_ACCOUNT_ID")
     MY_PRIVATE_KEY := os.Getenv("MY_PRIVATE_KEY")
 
-    myAccountID, err := hedera.AccountIDFromString(MY_ACCOUNT_ID)
+    myAccountID, err := hiero.AccountIDFromString(MY_ACCOUNT_ID)
     if err != nil {
         panic(err)
     }
 
-    myPrivateKey, err := hedera.Ed25519PrivateKeyFromString(MY_PRIVATE_KEY)
+    myPrivateKey, err := hiero.PrivateKeyFromStringEd25519(MY_PRIVATE_KEY)
     if err != nil {
         panic(err)
     }
 
-	client := hedera.ClientForTestnet()
+	client := hiero.ClientForTestnet()
 
 	client.SetOperator(myAccountID, myPrivateKey)
 
