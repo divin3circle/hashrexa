@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
+	"os"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -44,6 +44,12 @@ func NewUserHandler(db *badger.DB, client *hiero.Client) *UserHandler {
 }
 
 func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
+	MY_PRIVATE_KEY := os.Getenv("MY_PRIVATE_KEY")
+	privateKey, err := hiero.PrivateKeyFromStringEd25519(MY_PRIVATE_KEY)
+	if err != nil {
+		http.Error(w, "Failed to parse private key", http.StatusInternalServerError)
+		return
+	}
 	// get user account id and topic id from params
 	userAccountId := chi.URLParam(r, "userAccountId")
 	topicId := chi.URLParam(r, "topicId")
@@ -53,7 +59,7 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err := u.DB.Update(func(txn *badger.Txn) error {
+	err = u.DB.Update(func(txn *badger.Txn) error {
 		e := badger.NewEntry([]byte(userAccountId), []byte(topicId))
 		return txn.SetEntry(e)
 	})
@@ -96,23 +102,22 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	
-	topicMsgSubmitTx := hiero.NewTopicMessageSubmitTransaction().
+	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
+		SetTransactionMemo("User registered").
 		SetTopicID(topicID).
-		SetMessage(marshaledUser)
-	
-	response, err := topicMsgSubmitTx.Execute(u.Client)
-	if err != nil {
-		http.Error(w, "Failed to submit message to topic", http.StatusInternalServerError)
-		return
-	}
-	
-	_, err = response.GetReceipt(u.Client)
-	if err != nil {
-		http.Error(w, "Failed to get transaction receipt", http.StatusInternalServerError)
-		return
-	}
-	
-	fmt.Printf("Message submitted to topic successfully\n")
+		SetMessage(marshaledUser). 
+		FreezeWith(u.Client)
+
+	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
+	fmt.Printf("The topic message submit transaction ID: %s\n", topicMsgSubmitTxId.String())
+	topicMsgSubmitTxSigned := topicMsgSubmitTx.Sign(privateKey)
+	topicMsgSubmitTxSubmitted, _ := topicMsgSubmitTxSigned.Execute(u.Client)
+	topicMsgSubmitTxReceipt, _ := topicMsgSubmitTxSubmitted.GetReceipt(u.Client)
+
+	topicMsgSeqNum := topicMsgSubmitTxReceipt.TopicSequenceNumber
+	fmt.Printf("Topic Message Sequence Number: %v\n", topicMsgSeqNum)
+
+	u.Client.Close()
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
