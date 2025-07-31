@@ -60,7 +60,7 @@ func NewApplication() (*Application, error) {
 
 	app := &Application{
 		Logger: logger,
-		UserHandler: api.NewUserHandler(db, client),
+		UserHandler: api.NewUserHandler(db, client, alpacaClient),
 		DB: db,
 		Client: client,
 		Alpaca: alpacaClient,

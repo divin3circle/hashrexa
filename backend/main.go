@@ -23,13 +23,6 @@ func main() {
 		panic(err)
 	}
 
-	acc, err := app.Alpaca.GetAccount()
-	if err != nil {
-		log.Fatalf("Failed to get account: %v", err)
-		panic(err)
-	}
-
-	fmt.Println(acc)
 	defer app.DB.Close()
 
 	r := routes.SetUpRoutes(app)

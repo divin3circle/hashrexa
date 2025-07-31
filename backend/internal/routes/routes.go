@@ -31,6 +31,7 @@ func SetUpRoutes(app *app.Application) *chi.Mux {
 	// user routes
 	r.Post("/auth/register/{userAccountId}/{topicId}", app.UserHandler.HandleRegisterUser)
 	r.Get("/topics/exists/{userAccountId}", app.UserHandler.HandleCheckTopicExists)
+	r.Get("/positions", app.UserHandler.HandlerGetUserAlpacaPositions)
 
 	return r
 }
