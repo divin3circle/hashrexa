@@ -73,7 +73,7 @@ function TokensTable() {
 
               <TableCell className="text-right">
                 $
-                {(token.valueUSD * 10).toLocaleString("en-US", {
+                {(token.valueUSD * token.amount).toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}

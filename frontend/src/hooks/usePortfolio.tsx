@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 
 export function usePortfolioBalance() {
   const { address } = useAppKitAccount();
-  console.log("address", address);
   const { data, isLoading, error } = useQuery({
     queryKey: ["portfolio-balance"],
     queryFn: async () => await getPortfolioBalance(address),
@@ -38,6 +37,5 @@ async function getPortfolioBalance(
   }
   const response = await fetch(`${BACKEND_URL}/portfolio/${userAccountId}`);
   const data = await response.json();
-  console.log("data", data);
   return data.portfolio as Portfolio;
 }

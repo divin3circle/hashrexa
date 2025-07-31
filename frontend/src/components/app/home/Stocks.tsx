@@ -1,5 +1,6 @@
 import useStocks from "@/hooks/useStocks";
 import { useStockStore } from "@/store";
+import { FaAngleDoubleDown, FaAngleDoubleUp } from "react-icons/fa";
 
 function Stocks() {
   const { data, isLoading, error } = useStocks();
@@ -41,14 +42,22 @@ function Stocks() {
                 })}
               </p>
               <p
-                className={`text-sm p-0.5 rounded-full border w-fit px-2 text-center ${
+                className={`text-sm p-0.5 rounded-full border w-fit px-2 text-center flex items-center gap-1 ${
                   stock.change > 0
                     ? "border-green-500 text-green-500"
                     : "border-red-500 text-red-500"
                 }`}
               >
-                {stock.change > 0 ? "+" : ""}${stock.change} (
-                {stock.changePercent}%)
+                {stock.change > 0 ? (
+                  <FaAngleDoubleUp className="w-4 h-4 text-green-500" />
+                ) : (
+                  <FaAngleDoubleDown className="w-4 h-4 text-red-500" />
+                )}
+                $
+                {(stock.quantity * stock.price).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
             </div>
           </div>

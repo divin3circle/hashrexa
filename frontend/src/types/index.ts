@@ -20,6 +20,30 @@ export interface User {
   tokenized_assets: TokenizedAsset[];
   updatedAt: string;
 }
+export interface Position {
+  asset_id: string;
+  symbol: string;
+  exchange: string;
+  asset_class: string;
+  asset_marginable: boolean;
+  qty: string;
+  qty_available: string;
+  avg_entry_price: string;
+  side: "long" | "short";
+  market_value: string;
+  cost_basis: string;
+  unrealized_pl: string;
+  unrealized_plpc: string;
+  unrealized_intraday_pl: string;
+  unrealized_intraday_plpc: string;
+  current_price: string;
+  lastday_price: string;
+  change_today: string;
+}
+
+export interface PositionsResponse {
+  positions: Position[];
+}
 
 export interface Stock {
   symbol: string;
@@ -28,6 +52,7 @@ export interface Stock {
   change: number;
   changePercent: number;
   logo: string;
+  quantity: number;
 }
 
 export interface Portfolio {

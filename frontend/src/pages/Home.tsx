@@ -56,13 +56,12 @@ function Home() {
                     <div className="flex flex-col items-end">
                       <p className="text-sm font-semibold">
                         $
-                        {(stock.stock.price * stock.amount).toLocaleString(
-                          "en-US",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
+                        {(
+                          stock.stock.price * stock.stock.quantity
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                       <p className="text-xs font-semibold text-gray-400">
                         {stock.amount} {stock.stock.symbol}

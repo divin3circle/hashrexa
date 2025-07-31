@@ -7,9 +7,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MOCK_STOCKS } from "@/mocks";
+import useStocks from "@/hooks/useStocks";
+import { Loader2 } from "lucide-react";
 
 function StocksTable() {
+  const { data: stocks, error, isLoading } = useStocks();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Error: {error?.message}</div>;
+  }
+
+  if (!stocks) {
+    return <div>No data</div>;
+  }
   return (
     <div className="mt-12">
       <div className="flex justify-between items-center">
@@ -24,14 +42,13 @@ function StocksTable() {
             </TableHead>
             <TableHead className="font-semibold">Price</TableHead>
             <TableHead className="font-semibold ">Market Value</TableHead>
-            <TableHead className="font-semibold ">P/L</TableHead>
             <TableHead className="text-right font-semibold ">
               Quantity
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {MOCK_STOCKS.map((stock, index) => (
+          {stocks.map((stock, index) => (
             <TableRow
               className={`my-2 h-20 ${
                 index % 2 === 0
@@ -47,7 +64,7 @@ function StocksTable() {
                     alt={stock.symbol}
                     className="w-10 h-10 rounded-full"
                   />
-                  <p className="text-sm font-semibold flex flex-col">
+                  <p className="text-sm font-bold flex flex-col">
                     {stock.symbol}
                   </p>
                 </div>
@@ -61,19 +78,12 @@ function StocksTable() {
               </TableCell>
               <TableCell>
                 $
-                {(stock.price * 10).toLocaleString("en-US", {
+                {(stock.price * stock.quantity).toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </TableCell>
-              <TableCell
-                className={` ${
-                  stock.changePercent > 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {stock.changePercent} %
-              </TableCell>
-              <TableCell className="text-right">10</TableCell>
+              <TableCell className="text-right">{stock.quantity}</TableCell>
             </TableRow>
           ))}
         </TableBody>

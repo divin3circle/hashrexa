@@ -15,6 +15,7 @@ export const MOCK_STOCKS: Stock[] = [
     change: 1.25,
     changePercent: 0.83,
     logo: STOCK_LOGOS.AAPL,
+    quantity: 10,
   },
   {
     symbol: "TSLA",
@@ -23,6 +24,7 @@ export const MOCK_STOCKS: Stock[] = [
     change: -2.5,
     changePercent: -0.25,
     logo: STOCK_LOGOS.TSLA,
+    quantity: 10,
   },
   {
     symbol: "NFLX",
@@ -31,6 +33,7 @@ export const MOCK_STOCKS: Stock[] = [
     change: 10.0,
     changePercent: 2.0,
     logo: STOCK_LOGOS.NFLX,
+    quantity: 10,
   },
   {
     symbol: "AMZN",
@@ -39,6 +42,7 @@ export const MOCK_STOCKS: Stock[] = [
     change: 50.0,
     changePercent: 1.67,
     logo: STOCK_LOGOS.AMZN,
+    quantity: 10,
   },
 ];
 

@@ -46,9 +46,9 @@ function Wallet() {
               <span className="text-2xl md:text-4xl text-gray-500">
                 {decimalPlaces > 0 ? "." : ""}
                 {data.portfolioValueUSD
-                  .toString()
-                  .split(".")[1]
-                  .slice(0, decimalPlaces)}
+                  ?.toString()
+                  ?.split(".")[1]
+                  ?.slice(0, decimalPlaces)}
               </span>
               <span className="text-sm ml-1 md:text-base text-[#ff9494] font-bold">
                 USD
@@ -73,8 +73,8 @@ function Wallet() {
         </div>
       </div>
       <StocksTable />
-      <TokensTable />
       <TokenizedTable />
+      <TokensTable />
     </div>
   );
 }

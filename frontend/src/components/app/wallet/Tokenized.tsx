@@ -98,6 +98,16 @@ function TokenizedTable() {
               </TableCell>
             </TableRow>
           ))}
+          {tokenizedAssets.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={4}
+                className="text-center text-gray-500 text-sm"
+              >
+                No tokenized assets found
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

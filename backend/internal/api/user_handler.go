@@ -24,9 +24,14 @@ type LoanStatus struct {
 	BorrowedAmount float64 `json:"borrowed_amount"`
 	APY float64 `json:"apy"`
 }
-type TokenizedAsset struct {
-	Symbol string `json:"symbol"`
-	Amount float64 `json:"amount"`
+
+type StockToken struct {
+	StockSymbol string `json:"stockSymbol"`
+	StockPrice float64 `json:"stockPrice"`
+	StockChange float64 `json:"stockChange"`
+	UnrealizedPL float64 `json:"unrealizedPL"`
+	StockLogo string `json:"stockLogo"`
+	TokenizedAmount float64 `json:"tokenizedAmount"`
 }
 
 type TopicMessagesMNAPIResponse struct {
@@ -41,8 +46,8 @@ type User struct {
 	TopicId string `json:"topicId"`
 	CreatedAt string `json:"createdAt"`
 	ProfilePicture string `json:"profilePicture"`
-	LoanStatus []LoanStatus `json:"loan_status"`
-	TokenizedAssets []TokenizedAsset `json:"tokenized_assets"`
+	LoanStatus []LoanStatus `json:"loanStatus"`
+	TokenizedAssets []StockToken `json:"tokenizedAssets"`
 	UpdatedAt string `json:"updatedAt"`
 }
 
@@ -97,21 +102,8 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		TopicId: topicId,
 		CreatedAt: time.Now().Format(time.RFC3339),
 		ProfilePicture: "",
-		LoanStatus: []LoanStatus{
-			{
-				CollateralToken: "",
-				CollateralAmount: 0,
-				BorrowedToken: "",
-				BorrowedAmount: 0,
-				APY: 0,
-			},
-		},
-		TokenizedAssets: []TokenizedAsset{
-			{
-				Symbol: "",
-				Amount: 0,
-			},
-		},
+		LoanStatus: []LoanStatus{},
+		TokenizedAssets: []StockToken{},
 		UpdatedAt: time.Now().Format(time.RFC3339),
 	}
 	
@@ -181,18 +173,6 @@ func (u *UserHandler) HandleCheckTopicExists(w http.ResponseWriter, r *http.Requ
 	fmt.Fprintf(w, `{"exists": true, "topicId": "%s"}`, string(topicId))
 }
 
-func (u *UserHandler) HandlerGetUserAlpacaPositions(w http.ResponseWriter, r *http.Request) {
-	positions, err := u.Alpaca.GetPositions()
-	if err != nil {
-		http.Error(w, "Failed to get positions", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"positions": %v}`, positions)
-}
-
 func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Request) {
 	userAccountId := chi.URLParam(r, "userAccountId")
 
@@ -258,25 +238,11 @@ func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *htt
 		http.Error(w, "Failed to get topic ID", http.StatusInternalServerError)
 		return
 	}
-	topicResp, err := getUserDataFromTopic(string(topicId))
+	tokenizedAssets, err := getUserTokenizedAssets( string(topicId))
 	if err != nil {
-		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		http.Error(w, "Failed to get user tokenized assets", http.StatusInternalServerError)
 		return
 	}
-	userData := topicResp.Messages[0].Message
-	decodedUserData, err := base64.StdEncoding.DecodeString(userData)
-	if err != nil {
-    http.Error(w, "Failed to decode user data", http.StatusInternalServerError)
-    return
-	}
-
-	var user User
-	err = json.Unmarshal(decodedUserData, &user) 
-	if err != nil {
-		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
-		return
-	}
-	tokenizedAssets := user.TokenizedAssets
 	fmt.Println("Tokenized assets: ", tokenizedAssets)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -287,25 +253,77 @@ func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *htt
 	}
 }
 
-
 func (u *UserHandler) HandleGetUserPortfolio(w http.ResponseWriter, r *http.Request) {
 	userAccountId := chi.URLParam(r, "userAccountId")
 	if userAccountId == "" {
 		http.Error(w, "Missing user account ID", http.StatusBadRequest)
 		return
 	}
-	portfolio, err := u.getUserPortfolio()
+	var topicId []byte
+	err := u.DB.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(userAccountId))
+		if err != nil {
+			return err
+		}
+
+		topicId, err = item.ValueCopy(nil)
+		return err
+	})
+	if err != nil {
+		http.Error(w, "Failed to get topic ID", http.StatusInternalServerError)
+		return
+	}
+	portfolio, err := u.getUserPortfolio(string(topicId))
 	if err != nil {
 		http.Error(w, "Failed to get user portfolio", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(map[string]interface{}{
+	err = json.NewEncoder(w).Encode(map[string]Portfolio{
 		"portfolio": portfolio,
 	})
 	if err != nil {
 		http.Error(w, "Failed to encode portfolio", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (u *UserHandler) HandleGetUserPositions(w http.ResponseWriter, r *http.Request) {
+	positions, err := u.Alpaca.GetPositions()
+	if err != nil {
+		http.Error(w, "Failed to get positions", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("Positions: ", positions)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(map[string][]alpaca.Position{
+		"positions": positions,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode positions", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (u *UserHandler) HandleGetStockLogo(w http.ResponseWriter, r *http.Request) {
+	stockSymbol := chi.URLParam(r, "stockSymbol")
+	if stockSymbol == "" {
+		http.Error(w, "Missing stock symbol", http.StatusBadRequest)
+		return
+	}
+	logo, err := getStockLogo(stockSymbol)
+	if err != nil {
+		http.Error(w, "Failed to get stock logo", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]string{
+		"logo": logo,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode logo", http.StatusInternalServerError)
 		return
 	}
 }
@@ -338,6 +356,41 @@ func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 
 	return topicResp, nil
 }
+
+func getLatestMessageFromTopic(topicId string) (string, error) {
+	messages, err := getUserDataFromTopic(topicId)
+	if err != nil {
+		return "", err
+	}
+	latestMessage := messages.Messages[len(messages.Messages)-1]
+	decodedMsg, _ := base64.StdEncoding.DecodeString(latestMessage.Message)
+	return string(decodedMsg), nil
+}
+
+func getStockLogo(stockSymbol string) (string, error) {
+	fmt.Println("Getting stock logo for: ", stockSymbol)
+	return "https://substackcdn.com/image/fetch/$s_!G1lk!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8ed3d547-94ff-48e1-9f20-8c14a7030a02_2000x2000.jpeg", nil
+}
+
+func getUserTokenizedAssets(topicId string) ([]StockToken, error) {
+	userData, err := getLatestMessageFromTopic(string(topicId))
+	fmt.Println("User data: ", userData)
+	if err != nil {
+		fmt.Println("Error getting user data from topic: ", err)
+		return nil, err
+	}
+
+	var user User
+	err = json.Unmarshal([]byte(userData), &user) 
+	if err != nil {
+		fmt.Println("Error unmarshalling user data: ", err)
+		return nil, err
+	}
+	tokenizedAssets := user.TokenizedAssets
+	return tokenizedAssets, nil
+}
+
+
 
 func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenizedAsset string, amountToMint float64) (bool, error) {
 	mintSuccess, err := u.mint(amountToMint)
@@ -400,12 +453,12 @@ func (u *UserHandler) mint(amountToMint float64) (bool, error) {
 	return true, nil
 }
 
-func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset string, amountMinted float64) (bool, error) {
+func (u *UserHandler) recordTokenizedAsset(userAccountId string, asset string, amountMinted float64) (bool, error) {
 	privateKey, err := hiero.PrivateKeyFromStringEd25519(os.Getenv("MY_PRIVATE_KEY"))
 	if err != nil {
 		return false, err
 	}
-	// ger user data from their associated topic and unmarshal it to User struct
+	// get user data from their associated topic and unmarshal it to User struct
 	if userAccountId == "" {
 		return false, errors.New("missing user account ID")
 	}
@@ -423,12 +476,14 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset 
 		return false, err
 	}
 
-	topicResp, err := getUserDataFromTopic(string(topicId))
-	topicID, _ := hiero.TopicIDFromString(string(topicId))
+	topicID, err := hiero.TopicIDFromString(string(topicId))
 	if err != nil {
 		return false, err
 	}
-	userData := topicResp.Messages[0].Message
+	userData, err := getLatestMessageFromTopic(string(topicId))
+	if err != nil {
+		return false, err
+	}
 	var user User
 	err = json.Unmarshal([]byte(userData), &user)
 	if err != nil {
@@ -438,18 +493,30 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset 
 	// obtain the user's tokenized assets field and find the tokenized being minted
 	// if it doesn't exist create a new entry and populate the tokenized asset with the symbol and amount minted
 	// if it does exist, add the amount minted to the existing entry
+	position, err := u.Alpaca.GetPosition(asset)
+	if err != nil {
+		return false, err
+	}
+	logo, err := getStockLogo(asset)
+	if err != nil {
+		return false, err
+	}
 	tokenizedAssets := user.TokenizedAssets
 	if len(tokenizedAssets) == 0 {
-		tokenizedAssets = append(tokenizedAssets, TokenizedAsset{
-			Symbol: tokenizedAsset,
-			Amount: amountMinted,
+		tokenizedAssets = append(tokenizedAssets, StockToken{
+			StockSymbol: asset,
+			StockPrice: position.CurrentPrice.InexactFloat64(),
+			StockChange: position.ChangeToday.InexactFloat64(),
+			UnrealizedPL: position.UnrealizedPL.InexactFloat64(),
+			StockLogo: logo,
+			TokenizedAmount: amountMinted,
 		})
 		// update the user's tokenized assets field with the new tokenized asset
 		user.TokenizedAssets = tokenizedAssets
 	} else {
 	for _, tokenizedAsset := range tokenizedAssets {
-		if tokenizedAsset.Symbol == ALLOWED_TOKENIZED_ASSETS {
-			tokenizedAsset.Amount += amountMinted
+		if tokenizedAsset.StockSymbol == asset {
+			tokenizedAsset.TokenizedAmount += amountMinted
 			// update the user's tokenized assets field with the new tokenized asset
 			user.TokenizedAssets = tokenizedAssets
 			break
@@ -480,7 +547,7 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset 
 	
 }
 
-func (u *UserHandler) getUserPortfolio() (Portfolio, error) {
+func (u *UserHandler) getUserPortfolio(topicId string) (Portfolio, error) {
 	positions, err := u.Alpaca.GetPositions()
 	if err != nil {
 		return Portfolio{}, err
@@ -490,10 +557,13 @@ func (u *UserHandler) getUserPortfolio() (Portfolio, error) {
 		return Portfolio{}, err
 	}
 	portfolioValueUSD := account.PortfolioValue.InexactFloat64()
-	
+	tokenizedAssets, err := getUserTokenizedAssets(topicId)
+	if err != nil {
+		return Portfolio{}, err
+	}
 	return Portfolio{
 		PortfolioValueUSD: portfolioValueUSD,
 		OptionsAssets: len(positions),
-		TokenizedAssets: 1, // TODO: get tokenized assets from topic
+		TokenizedAssets: len(tokenizedAssets), 
 	}, nil
 }

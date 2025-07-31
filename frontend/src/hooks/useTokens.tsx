@@ -41,6 +41,7 @@ async function processTokenizedAssets(
     change: 1.25,
     changePercent: 0.83,
     logo: STOCK_LOGOS.AAPL,
+    quantity: 10,
   };
   const appleTokenizedAsset = {
     stock: appleStock,

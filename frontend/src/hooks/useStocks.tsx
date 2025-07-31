@@ -1,11 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { Stock, StockHistoricalPrice } from "@/types";
-import { MOCK_STOCK_HISTORICAL_PRICE, MOCK_STOCKS } from "@/mocks";
+import {
+  Position,
+  PositionsResponse,
+  Stock,
+  StockHistoricalPrice,
+} from "@/types";
+import { MOCK_STOCK_HISTORICAL_PRICE } from "@/mocks";
+import { BACKEND_URL } from "@/config";
 
 const useStocks = () => {
   const { data, isLoading, error } = useQuery<Stock[]>({
     queryKey: ["stocks"],
-    queryFn: getStocks,
+    queryFn: async () => await getStocks(),
   });
 
   return { data, isLoading, error };
@@ -26,20 +32,32 @@ async function getStockHistoricalPrice(symbol: string) {
 }
 
 async function getStocks() {
+  const response = await fetch(`${BACKEND_URL}/positions`);
+  const data: PositionsResponse = await response.json();
   const stocks = await Promise.all(
-    MOCK_STOCKS.map((stock) => getStock(stock.symbol))
+    data.positions.map((stock) => getStock(stock))
   );
   return stocks;
 }
 
-async function getStock(symbol: string): Promise<Stock> {
-  const stock = MOCK_STOCKS.find((stock) => stock.symbol === symbol);
+async function getStock(position: Position): Promise<Stock> {
+  const stockLogo = await getStockLogo(position.symbol);
 
-  if (!stock) {
-    throw new Error(`Stock with symbol ${symbol} not found`);
-  }
+  return {
+    symbol: position.symbol,
+    name: position.symbol,
+    price: parseFloat(position.current_price),
+    change: parseFloat(position.change_today),
+    changePercent: parseFloat(position.change_today),
+    logo: stockLogo,
+    quantity: parseFloat(position.qty),
+  };
+}
 
-  return stock;
+async function getStockLogo(symbol: string): Promise<string> {
+  const response = await fetch(`${BACKEND_URL}/stock-logo/${symbol}`);
+  const data = await response.json();
+  return data.logo;
 }
 
 export default useStocks;
