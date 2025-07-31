@@ -1,12 +1,18 @@
-import { MOCK_PORTFOLIO_BALANCE, MOCK_TOKENS } from "@/mocks";
+import { BACKEND_URL } from "@/config";
+import { MOCK_TOKENS } from "@/mocks";
+import { Portfolio } from "@/types";
+import { useAppKitAccount } from "@reown/appkit/react-core";
 import { useQuery } from "@tanstack/react-query";
 
 export function usePortfolioBalance() {
+  const { address } = useAppKitAccount();
+  console.log("address", address);
   const { data, isLoading, error } = useQuery({
     queryKey: ["portfolio-balance"],
-    queryFn: async () => await getPortfolioBalance(),
+    queryFn: async () => await getPortfolioBalance(address),
   });
-  const decimalPlaces = data?.toString().split(".")[1]?.length || 0;
+  const decimalPlaces =
+    data?.portfolioValueUSD?.toString().split(".")[1]?.length || 0;
 
   return { data, isLoading, error, decimalPlaces };
 }
@@ -23,6 +29,15 @@ async function getWalletTokens() {
   return MOCK_TOKENS;
 }
 
-async function getPortfolioBalance() {
-  return MOCK_PORTFOLIO_BALANCE;
+async function getPortfolioBalance(
+  userAccountId: string | undefined
+): Promise<Portfolio> {
+  if (!userAccountId) {
+    console.log("No user account ID");
+    return { portfolioValueUSD: 0, tokenizedAssets: 0, optionsAssets: 0 };
+  }
+  const response = await fetch(`${BACKEND_URL}/portfolio/${userAccountId}`);
+  const data = await response.json();
+  console.log("data", data);
+  return data.portfolio as Portfolio;
 }

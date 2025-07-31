@@ -1,15 +1,31 @@
 import Navbar from "@/components/app/landing/Navbar";
 import StocksTable from "@/components/app/wallet/Stocks";
+import TokenizedTable from "@/components/app/wallet/Tokenized";
 import TokensTable from "@/components/app/wallet/Tokens";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePortfolioBalance } from "@/hooks/usePortfolio";
+import { Loader2 } from "lucide-react";
 import { HiOutlineRefresh } from "react-icons/hi";
 
 function Wallet() {
   const { data, isLoading, error, decimalPlaces } = usePortfolioBalance();
-  if (error || !data) {
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
     return <div>Error: {error?.message}</div>;
   }
+
+  if (!data) {
+    return <div>No data</div>;
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-2">
       <Navbar />
@@ -23,14 +39,16 @@ function Wallet() {
           ) : (
             <h1 className="text-4xl md:text-6xl my-2">
               $
-              {data.toLocaleString("en-US", {
+              {data.portfolioValueUSD.toLocaleString("en-US", {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
               })}
               <span className="text-2xl md:text-4xl text-gray-500">
                 {decimalPlaces > 0 ? "." : ""}
-                {decimalPlaces > 0 &&
-                  data.toString().split(".")[1].slice(0, decimalPlaces)}
+                {data.portfolioValueUSD
+                  .toString()
+                  .split(".")[1]
+                  .slice(0, decimalPlaces)}
               </span>
               <span className="text-sm ml-1 md:text-base text-[#ff9494] font-bold">
                 USD
@@ -39,10 +57,14 @@ function Wallet() {
           )}
           <div className="flex items-center gap-4">
             <div className="flex flex-col gap-1 text-green-600 py-1 bg-green-500/10 px-2 rounded-3xl border border-green-600/20">
-              <p className="text-sm text-gray-500">4 Minted tokens</p>
+              <p className="text-sm text-gray-500">
+                {data.tokenizedAssets} Minted tokens
+              </p>
             </div>
             <div className="flex flex-col gap-1 rounded-3xl bg-gray-100 px-2 py-1 border border-gray-200">
-              <p className="text-sm text-gray-500">6 Stocks Options</p>
+              <p className="text-sm text-gray-500">
+                {data.optionsAssets} Stocks Options
+              </p>
             </div>
           </div>
         </div>
@@ -52,6 +74,7 @@ function Wallet() {
       </div>
       <StocksTable />
       <TokensTable />
+      <TokenizedTable />
     </div>
   );
 }

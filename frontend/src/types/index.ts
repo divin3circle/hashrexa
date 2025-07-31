@@ -8,7 +8,7 @@ export interface LoanStatus {
 
 export interface TokenizedAsset {
   symbol: string;
-  valueUSD: number;
+  amount: number;
 }
 
 export interface User {
@@ -30,6 +30,12 @@ export interface Stock {
   logo: string;
 }
 
+export interface Portfolio {
+  portfolioValueUSD: number;
+  tokenizedAssets: number;
+  optionsAssets: number;
+}
+
 export interface Token {
   symbol: string;
   name: string;
@@ -38,7 +44,7 @@ export interface Token {
   icon: string;
 }
 
-export interface TokenizedAssets {
+export interface FullTokenizedAssets {
   stock: Stock;
   amount: number;
 }

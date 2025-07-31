@@ -26,7 +26,7 @@ type LoanStatus struct {
 }
 type TokenizedAsset struct {
 	Symbol string `json:"symbol"`
-	ValueUSD float64 `json:"valueUSD"`
+	Amount float64 `json:"amount"`
 }
 
 type TopicMessagesMNAPIResponse struct {
@@ -109,7 +109,7 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		TokenizedAssets: []TokenizedAsset{
 			{
 				Symbol: "",
-				ValueUSD: 0,
+				Amount: 0,
 			},
 		},
 		UpdatedAt: time.Now().Format(time.RFC3339),
@@ -264,16 +264,50 @@ func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *htt
 		return
 	}
 	userData := topicResp.Messages[0].Message
+	decodedUserData, err := base64.StdEncoding.DecodeString(userData)
+	if err != nil {
+    http.Error(w, "Failed to decode user data", http.StatusInternalServerError)
+    return
+	}
+
 	var user User
-	err = json.Unmarshal([]byte(userData), &user)
+	err = json.Unmarshal(decodedUserData, &user) 
 	if err != nil {
 		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+		return
 	}
 	tokenizedAssets := user.TokenizedAssets
-	
+	fmt.Println("Tokenized assets: ", tokenizedAssets)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"tokenizedAssets": %v}`, tokenizedAssets)
+	err = json.NewEncoder(w).Encode(tokenizedAssets)
+	if err != nil {
+		http.Error(w, "Failed to encode tokenized assets", http.StatusInternalServerError)
+		return
+	}
+}
+
+
+func (u *UserHandler) HandleGetUserPortfolio(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	portfolio, err := u.getUserPortfolio()
+	if err != nil {
+		http.Error(w, "Failed to get user portfolio", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
+		"portfolio": portfolio,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode portfolio", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
@@ -303,22 +337,6 @@ func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 	}
 
 	return topicResp, nil
-}
-
-func (u *UserHandler) HandleGetUserPortfolio(w http.ResponseWriter, r *http.Request) {
-	userAccountId := chi.URLParam(r, "userAccountId")
-	if userAccountId == "" {
-		http.Error(w, "Missing user account ID", http.StatusBadRequest)
-		return
-	}
-	portfolio, err := u.getUserPortfolio()
-	if err != nil {
-		http.Error(w, "Failed to get user portfolio", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"portfolio": %v}`, portfolio)
 }
 
 func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenizedAsset string, amountToMint float64) (bool, error) {
@@ -424,14 +442,14 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset 
 	if len(tokenizedAssets) == 0 {
 		tokenizedAssets = append(tokenizedAssets, TokenizedAsset{
 			Symbol: tokenizedAsset,
-			ValueUSD: amountMinted,
+			Amount: amountMinted,
 		})
 		// update the user's tokenized assets field with the new tokenized asset
 		user.TokenizedAssets = tokenizedAssets
 	} else {
 	for _, tokenizedAsset := range tokenizedAssets {
 		if tokenizedAsset.Symbol == ALLOWED_TOKENIZED_ASSETS {
-			tokenizedAsset.ValueUSD += amountMinted
+			tokenizedAsset.Amount += amountMinted
 			// update the user's tokenized assets field with the new tokenized asset
 			user.TokenizedAssets = tokenizedAssets
 			break

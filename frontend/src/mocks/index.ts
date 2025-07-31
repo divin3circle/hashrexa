@@ -4,7 +4,7 @@ import {
   Stock,
   StockHistoricalPrice,
   Token,
-  TokenizedAssets,
+  FullTokenizedAssets,
 } from "@/types";
 
 export const MOCK_STOCKS: Stock[] = [
@@ -57,48 +57,9 @@ export const MOCK_TOKENS: Token[] = [
     valueUSD: 0.996,
     icon: STOCK_LOGOS.HASH,
   },
-  {
-    symbol: "dAAPL",
-    name: "Apple Inc",
-    amount: 10,
-    valueUSD: 231.45,
-    icon: STOCK_LOGOS.AAPL,
-  },
-  {
-    symbol: "dTSLA",
-    name: "Tesla Inc",
-    amount: 2,
-    valueUSD: 100.145,
-    icon: STOCK_LOGOS.TSLA,
-  },
-  {
-    symbol: "dNFLX",
-    name: "Netflix Inc",
-    amount: 10,
-    valueUSD: 23.495,
-    icon: STOCK_LOGOS.NFLX,
-  },
 ];
 
-const AAPL = {
-  symbol: "AAPL",
-  name: "Apple Inc.",
-  price: 150.75,
-  change: 1.25,
-  changePercent: 0.83,
-  logo: STOCK_LOGOS.AAPL,
-};
-
-const TSLA = {
-  symbol: "TSLA",
-  name: "Tesla Inc.",
-  price: 1000.0,
-  change: -2.5,
-  changePercent: -0.25,
-  logo: STOCK_LOGOS.TSLA,
-};
-
-export const TOKENIZED_ASSETS: TokenizedAssets[] = [
+export const TOKENIZED_ASSETS: FullTokenizedAssets[] = [
   // {
   //   stock: AAPL,
   //   amount: 10,

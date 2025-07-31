@@ -1,4 +1,3 @@
-import { useWalletTokens } from "@/hooks/usePortfolio";
 import {
   Table,
   TableBody,
@@ -8,19 +7,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { STOCK_LOGOS } from "@/assets";
+import { useTokens } from "@/hooks/useTokens";
+import { useAppKitAccount } from "@reown/appkit/react-core";
+import { Loader2 } from "lucide-react";
 
-function TokensTable() {
-  const { data, isLoading, error } = useWalletTokens();
-  if (error || !data) {
+function TokenizedTable() {
+  const { address } = useAppKitAccount();
+  const { tokenizedAssets, isLoading, error } = useTokens(address);
+  if (error) {
     return <div>Error: {error?.message}</div>;
   }
+
+  if (!tokenizedAssets) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        No tokenized assets found
+      </div>
+    );
+  }
+
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
   }
   return (
     <div className="mt-12 mb-10">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-primary">My Tokens</h1>
+        <h1 className="text-2xl font-semibold text-primary">
+          Tokenized Assets
+        </h1>
       </div>
       <Table>
         <TableHeader>
@@ -34,7 +52,7 @@ function TokensTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((token, index) => (
+          {tokenizedAssets.map((token, index) => (
             <TableRow
               className={`my-2 h-20 ${
                 index % 2 === 0
@@ -47,8 +65,8 @@ function TokensTable() {
                 <div className="flex items-center gap-1">
                   <div className="relative w-11 h-11 border border-gray-200 rounded-full">
                     <img
-                      src={token.icon}
-                      alt={token.symbol}
+                      src={token.stock.logo}
+                      alt={token.stock.symbol}
                       className="w-10 h-10 rounded-full"
                     />
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full">
@@ -61,19 +79,19 @@ function TokensTable() {
                   </div>
                   <div className="">
                     <p className="text-sm font-bold flex flex-col">
-                      {token.symbol}
+                      d{token.stock.symbol}
                     </p>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <p className="text-sm font-semibold">{token.name}</p>
+                <p className="text-sm font-semibold">{token.stock.name}</p>
               </TableCell>
-              <TableCell>${token.valueUSD}</TableCell>
+              <TableCell>${token.stock.price}</TableCell>
 
               <TableCell className="text-right">
                 $
-                {(token.valueUSD * 10).toLocaleString("en-US", {
+                {(token.amount * token.stock.price).toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -86,4 +104,4 @@ function TokensTable() {
   );
 }
 
-export default TokensTable;
+export default TokenizedTable;
