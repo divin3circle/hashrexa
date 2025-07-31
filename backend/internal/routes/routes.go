@@ -32,6 +32,8 @@ func SetUpRoutes(app *app.Application) *chi.Mux {
 	r.Post("/auth/register/{userAccountId}/{topicId}", app.UserHandler.HandleRegisterUser)
 	r.Get("/topics/exists/{userAccountId}", app.UserHandler.HandleCheckTopicExists)
 	r.Get("/positions", app.UserHandler.HandlerGetUserAlpacaPositions)
+	r.Get("/tokenized-assets/{userAccountId}", app.UserHandler.HandleGetUserTokenizedAssets)
+	r.Get("/portfolio/{userAccountId}", app.UserHandler.HandleGetUserPortfolio)
 
 	return r
 }

@@ -46,6 +46,12 @@ type User struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+type Portfolio struct {
+	PortfolioValueUSD float64 `json:"portfolioValueUSD"`
+	TokenizedAssets int `json:"tokenizedAssets"`
+	OptionsAssets int `json:"optionsAssets"`
+}
+
 type UserHandler struct {
 	DB *badger.DB
 	Client *hiero.Client
@@ -232,6 +238,44 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 	fmt.Fprintf(w, `{"success": true, "message": "Tokenized assets minted successfully"}`)
 }
 
+func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	var topicId []byte
+	err := u.DB.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(userAccountId))
+		if err != nil {
+			return err
+		}
+
+		topicId, err = item.ValueCopy(nil)
+		return err
+	})
+	if err != nil {
+		http.Error(w, "Failed to get topic ID", http.StatusInternalServerError)
+		return
+	}
+	topicResp, err := getUserDataFromTopic(string(topicId))
+	if err != nil {
+		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		return
+	}
+	userData := topicResp.Messages[0].Message
+	var user User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+	}
+	tokenizedAssets := user.TokenizedAssets
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"tokenizedAssets": %v}`, tokenizedAssets)
+}
+
 func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 	fmt.Println("🟣 Get topic data from the Hedera Mirror Node")
 	topicMirrorNodeApiUrl :=
@@ -259,6 +303,22 @@ func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 	}
 
 	return topicResp, nil
+}
+
+func (u *UserHandler) HandleGetUserPortfolio(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	portfolio, err := u.getUserPortfolio()
+	if err != nil {
+		http.Error(w, "Failed to get user portfolio", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"portfolio": %v}`, portfolio)
 }
 
 func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenizedAsset string, amountToMint float64) (bool, error) {
@@ -400,4 +460,22 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, tokenizedAsset 
 
 	return true, nil
 	
+}
+
+func (u *UserHandler) getUserPortfolio() (Portfolio, error) {
+	positions, err := u.Alpaca.GetPositions()
+	if err != nil {
+		return Portfolio{}, err
+	}
+	account, err := u.Alpaca.GetAccount()
+	if err != nil {
+		return Portfolio{}, err
+	}
+	portfolioValueUSD := account.PortfolioValue.InexactFloat64()
+	
+	return Portfolio{
+		PortfolioValueUSD: portfolioValueUSD,
+		OptionsAssets: len(positions),
+		TokenizedAssets: 1, // TODO: get tokenized assets from topic
+	}, nil
 }
