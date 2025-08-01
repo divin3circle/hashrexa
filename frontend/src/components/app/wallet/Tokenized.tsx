@@ -8,12 +8,10 @@ import {
 } from "@/components/ui/table";
 import { STOCK_LOGOS } from "@/assets";
 import { useTokens } from "@/hooks/useTokens";
-import { useAppKitAccount } from "@reown/appkit/react-core";
 import { Loader2 } from "lucide-react";
 
 function TokenizedTable() {
-  const { address } = useAppKitAccount();
-  const { tokenizedAssets, isLoading, error } = useTokens(address);
+  const { tokenizedAssets, isLoading, error } = useTokens();
   if (error) {
     return <div>Error: {error?.message}</div>;
   }
@@ -63,7 +61,7 @@ function TokenizedTable() {
             >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-1">
-                  <div className="relative w-11 h-11 border border-gray-200 rounded-full">
+                  <div className="relative w-11 h-11 border border-gray-300 rounded-full">
                     <img
                       src={token.stock.logo}
                       alt={token.stock.symbol}

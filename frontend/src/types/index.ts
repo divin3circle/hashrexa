@@ -7,8 +7,12 @@ export interface LoanStatus {
 }
 
 export interface TokenizedAsset {
-  symbol: string;
-  amount: number;
+  stockChange: number;
+  stockLogo: string;
+  stockPrice: number;
+  stockSymbol: string;
+  tokenizedAmount: number;
+  unrealizedPL: number;
 }
 
 export interface User {

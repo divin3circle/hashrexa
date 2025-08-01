@@ -2,18 +2,39 @@ import { StockHistoricalPrice } from "@/components/app/home/StockHistoricalPrice
 import Stocks from "@/components/app/home/Stocks";
 import Navbar from "@/components/app/landing/Navbar";
 import { Button } from "@/components/ui/button";
-import { TOKENIZED_ASSETS } from "@/mocks";
 import { FaEllipsisV } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa6";
 import { useLoans } from "@/hooks/useLoans";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTokenizePortfolio } from "@/hooks/usePortfolio";
+import { useTokens } from "@/hooks/useTokens";
+import { useNavigate } from "react-router-dom";
 
 function Home() {
   const { data: loans, isLoading, error } = useLoans();
+  const { mutate, isPending } = useTokenizePortfolio();
+  const { tokenizedAssets, isLoading: isTokenizedAssetsLoading } = useTokens();
+  const navigate = useNavigate();
+
+  if (isTokenizedAssetsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
+  }
 
   if (error || !loans) {
     return <div>Error: {error?.message}</div>;
+  }
+
+  if (!tokenizedAssets) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -25,7 +46,7 @@ function Home() {
           <StockHistoricalPrice />
         </div>
         <div className="flex flex-col gap-2 w-full md:w-[40%]">
-          <div className=" border border-gray-200 rounded-3xl h-[280px] py-3 px-4">
+          <div className=" border border-gray-300 rounded-3xl h-[280px] py-3 px-2">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1">
                 <h1 className="text-xl font-bold">Tokenized Stocks</h1>
@@ -35,54 +56,71 @@ function Home() {
               </div>
               <FaEllipsisV className="text-xl cursor-pointer" />
             </div>
-            <div className="flex flex-col gap-2">
-              {TOKENIZED_ASSETS.length > 0 &&
-                TOKENIZED_ASSETS.slice(0, 2).map((stock) => (
-                  <div className="flex justify-between py-1.5 my-2">
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={stock.stock.logo}
-                        className="w-8 h-8 rounded-full "
-                      />
-                      <div className="flex flex-col">
+            {isTokenizedAssetsLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <div className="flex flex-col gap-2 w-full">
+                {tokenizedAssets.length > 0 &&
+                  tokenizedAssets.slice(0, 2).map((stock) => (
+                    <div
+                      onClick={() => navigate("/wallet")}
+                      className="flex justify-between py-1.5 my-2 border px-2 border-gray-300 rounded-2xl cursor-pointer group hover:bg-[#ff9494]/10 transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={stock.stock.logo}
+                          className="w-8 h-8 rounded-full "
+                        />
+                        <div className="flex flex-col">
+                          <p className="text-sm font-semibold">
+                            {stock.stock.symbol}
+                          </p>
+                          <p className="text-xs font-bold text-gray-400">
+                            {stock.stock.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
                         <p className="text-sm font-semibold">
-                          {stock.stock.symbol}
+                          $
+                          {(
+                            stock.stock.price * stock.stock.quantity
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </p>
-                        <p className="text-xs font-bold text-gray-400">
-                          {stock.stock.name}
+                        <p className="text-xs font-semibold text-gray-400">
+                          {stock.amount} {stock.stock.symbol}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <p className="text-sm font-semibold">
-                        $
-                        {(
-                          stock.stock.price * stock.stock.quantity
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </p>
-                      <p className="text-xs font-semibold text-gray-400">
-                        {stock.amount} {stock.stock.symbol}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
 
-              {TOKENIZED_ASSETS.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-[150px]">
-                  <p className="text-sm font-light text-gray-400">
-                    You don't have any tokenized stocks yet
-                  </p>
-                </div>
-              )}
-            </div>
-            <Button className="w-full mt-4 rounded-3xl">
-              {TOKENIZED_ASSETS.length === 0 ? "Start Tokenizing" : "View All"}
-            </Button>
+                {tokenizedAssets.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-[150px]">
+                    <p className="text-sm font-light text-gray-400">
+                      You don't have any tokenized stocks yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            {tokenizedAssets.length === 0 && (
+              <Button
+                className="w-full mt-4 rounded-3xl flex items-center justify-center gap-2"
+                onClick={() => mutate()}
+              >
+                {isPending
+                  ? "Tokenizing..."
+                  : tokenizedAssets.length === 0
+                  ? "Start Tokenizing"
+                  : "View All"}
+                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              </Button>
+            )}
           </div>
-          <div className="border border-gray-200 rounded-3xl h-[280px] py-3 px-4">
+          <div className="border border-gray-300 rounded-3xl h-[280px] py-3 px-4">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1">
                 <h1 className="text-xl font-bold">My Loans</h1>

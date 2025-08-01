@@ -1,4 +1,4 @@
-import hedera from "../../../../public/hedera.png";
+import hedera from "../../../../public/hederaLogo.png";
 import alpaca from "../../../../public/alpaca.png";
 import graphs from "../../../../public/stocks.json";
 import Lottie from "lottie-react";
@@ -80,9 +80,9 @@ function Hero() {
               <img
                 src={hedera}
                 alt="hedera"
-                width={120}
+                width={140}
                 height={100}
-                className="border border-gray-200 rounded-full py-1.5 px-4 "
+                className="border border-gray-300 rounded-full py-[-10px] px-4 "
               />
             </motion.div>
             <motion.div
@@ -92,9 +92,9 @@ function Hero() {
               <img
                 src={alpaca}
                 alt="alpaca"
-                width={120}
+                width={140}
                 height={100}
-                className="border border-gray-200 rounded-full py-1.5 px-4 "
+                className="border border-gray-300 rounded-full py-3 px-4 "
               />
             </motion.div>
           </motion.div>

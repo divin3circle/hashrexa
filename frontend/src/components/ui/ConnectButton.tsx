@@ -3,13 +3,12 @@ import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
 export default function ConnectButton() {
   const { isConnected } = useAppKitAccount();
   const { open } = useAppKit();
-  console.log(isConnected);
 
   return (
     <>
       {isConnected ? (
         <button
-          className=" text-primary font-bold text-md rounded-full p-0.5 w-fit lowercase border border-gray-200 flex items-center justify-center"
+          className=" text-primary font-bold text-md rounded-full p-0.5 w-fit lowercase border border-gray-300 flex items-center justify-center"
           onClick={() => open()}
         >
           <appkit-button label="disconnect" />
@@ -17,7 +16,7 @@ export default function ConnectButton() {
         </button>
       ) : (
         <button
-          className=" text-primary font-bold text-md rounded-full py-2 px-4 lowercase border border-gray-200 w-fit"
+          className=" text-primary font-bold text-md rounded-full py-2 px-4 lowercase border border-gray-300 w-fit"
           onClick={() => open()}
         >
           connect wallet

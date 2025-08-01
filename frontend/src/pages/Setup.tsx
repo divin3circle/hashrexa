@@ -36,7 +36,7 @@ function Setup() {
           A topic is a collection of messages that are stored on the Hedera
           network.
         </p>
-        <div className="flex flex-col w-full border-t border-b border-gray-200 mt-6 p-2 py-4 transition-all duration-300">
+        <div className="flex flex-col w-full border-t border-b border-gray-300 mt-6 p-2 py-4 transition-all duration-300">
           <motion.div
             className="flex items-center justify-between w-full transition-all duration-300"
             initial={{ opacity: 0, y: -10 }}

@@ -185,6 +185,7 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Failed to get positions", http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("Positions found✅")
 	// find allowed tokenized assets in positions
 	allowedTokenizedAssets := []string{}
 	for _, position := range positions {
@@ -197,6 +198,7 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 		http.Error(w, "You have no allowed tokenized assets in your portfolio", http.StatusBadRequest)
 		return
 	}
+	fmt.Println("Allowed tokenized assets found✅")
 
 	amountToMint := positions[0].QtyAvailable.InexactFloat64() * 0.75
 
@@ -238,7 +240,7 @@ func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *htt
 		http.Error(w, "Failed to get topic ID", http.StatusInternalServerError)
 		return
 	}
-	tokenizedAssets, err := getUserTokenizedAssets( string(topicId))
+	tokenizedAssets, err := u.getUserTokenizedAssets( string(topicId))
 	if err != nil {
 		http.Error(w, "Failed to get user tokenized assets", http.StatusInternalServerError)
 		return
@@ -381,13 +383,49 @@ func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 	return topicResp, nil
 }
 
-func getLatestMessageFromTopic(topicId string) (string, error) {
-	messages, err := getUserDataFromTopic(topicId)
+func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
+	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
 		return "", err
 	}
-	latestMessage := messages.Messages[len(messages.Messages)-1]
-	decodedMsg, _ := base64.StdEncoding.DecodeString(latestMessage.Message)
+	
+	query := hiero.NewTopicInfoQuery().
+		SetTopicID(topicID)
+
+	info, err := query.Execute(u.Client)
+	if err != nil {
+		return "", err
+	}
+	sequenceNumber := info.SequenceNumber
+	fmt.Println("Sequence number: ", sequenceNumber)
+
+	url := fmt.Sprintf("https://testnet.mirrornode.hedera.com/api/v1/topics/%s/messages?encoding=base64&limit=5&order=asc&sequencenumber=%d", topicId, sequenceNumber)
+	fmt.Println("URL: ", url)
+	var response struct {
+		Messages []struct {
+			Message string `json:"message"`
+		} `json:"messages"`
+	}
+
+	httpResp, err := req.R().Get(url)
+	if err != nil {
+		return "", err
+	}
+	err = json.Unmarshal(httpResp.Bytes(), &response)
+	if err != nil {
+    return "", err
+	}
+	if len(response.Messages) == 0 {
+    return "", errors.New("no messages found")
+	}
+	messageContent := response.Messages[0].Message
+
+	decodedMsg, err := base64.StdEncoding.DecodeString(messageContent)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("Decoded message: ", string(decodedMsg))
+
 	return string(decodedMsg), nil
 }
 
@@ -396,8 +434,8 @@ func getStockLogo(stockSymbol string) (string, error) {
 	return "https://substackcdn.com/image/fetch/$s_!G1lk!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8ed3d547-94ff-48e1-9f20-8c14a7030a02_2000x2000.jpeg", nil
 }
 
-func getUserTokenizedAssets(topicId string) ([]StockToken, error) {
-	userData, err := getLatestMessageFromTopic(string(topicId))
+func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, error) {
+	userData, err := u.getLatestMessageFromTopic(string(topicId))
 	fmt.Println("User data: ", userData)
 	if err != nil {
 		fmt.Println("Error getting user data from topic: ", err)
@@ -422,15 +460,18 @@ func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenize
 		log.Fatalf("Failed to mint tokenized asset: %v", err)
 		return mintSuccess, err
 	}
+	fmt.Println("Minted tokenized asset✅")
 	recordSuccess, err := u.recordTokenizedAsset(userAccountId, tokenizedAsset, amountToMint)
 	if err != nil {
 		log.Fatalf("Failed to record tokenized asset: %v", err)
 		return recordSuccess, err
 	}
-
+	fmt.Println("Recorded tokenized asset✅")
 	if mintSuccess && recordSuccess {
-		fmt.Printf("Successfully minted %v %s\n", amountToMint, tokenizedAsset)
+		fmt.Println("Successfully minted✅")
 	}
+	fmt.Printf("Mint Status: %v\n", mintSuccess)
+	fmt.Printf("Record Status: %v\n", recordSuccess)
 
 	return mintSuccess && recordSuccess, nil
 }
@@ -504,7 +545,7 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, asset string, a
 	if err != nil {
 		return false, err
 	}
-	userData, err := getLatestMessageFromTopic(string(topicId))
+	userData, err := u.getLatestMessageFromTopic(string(topicId))
 	if err != nil {
 		return false, err
 	}
@@ -581,7 +622,7 @@ func (u *UserHandler) getUserPortfolio(topicId string) (Portfolio, error) {
 		return Portfolio{}, err
 	}
 	portfolioValueUSD := account.PortfolioValue.InexactFloat64()
-	tokenizedAssets, err := getUserTokenizedAssets(topicId)
+	tokenizedAssets, err := u.getUserTokenizedAssets(topicId)
 	if err != nil {
 		return Portfolio{}, err
 	}

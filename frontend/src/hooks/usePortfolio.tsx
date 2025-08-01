@@ -2,7 +2,9 @@ import { BACKEND_URL } from "@/config";
 import { MOCK_TOKENS } from "@/mocks";
 import { Portfolio } from "@/types";
 import { useAppKitAccount } from "@reown/appkit/react-core";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export function usePortfolioBalance() {
   const { address } = useAppKitAccount();
@@ -24,6 +26,26 @@ export const useWalletTokens = () => {
   return { data, isLoading, error };
 };
 
+export function useTokenizePortfolio() {
+  const { address } = useAppKitAccount();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { mutate, isPending, error, data } = useMutation({
+    mutationFn: async () => await tokenizePortfolio(address),
+    onSuccess: () => {
+      toast.success("Portfolio tokenized successfully");
+      queryClient.invalidateQueries({ queryKey: ["portfolio-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["tokenizedAssets"] });
+      navigate("/wallet");
+    },
+    onError: (error) => {
+      toast.error("Error tokenizing portfolio");
+      console.error("Error tokenizing portfolio:", error);
+    },
+  });
+  return { mutate, isPending, error, data };
+}
+
 async function getWalletTokens() {
   return MOCK_TOKENS;
 }
@@ -38,4 +60,16 @@ async function getPortfolioBalance(
   const response = await fetch(`${BACKEND_URL}/portfolio/${userAccountId}`);
   const data = await response.json();
   return data.portfolio as Portfolio;
+}
+
+async function tokenizePortfolio(userAccountId: string | undefined) {
+  if (!userAccountId) {
+    console.log("No user account ID");
+    return;
+  }
+  const response = await fetch(
+    `${BACKEND_URL}/tokenize-portfolio/${userAccountId}`
+  );
+  const data = await response.json();
+  console.log("Tokenized portfolio:", data);
 }

@@ -4,6 +4,7 @@ import { projectId, metadata, networks } from "./config";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "@/pages/Landing";
 import "./App.css";
+import { Toaster } from "react-hot-toast";
 import {
   HederaAdapter,
   HederaChainDefinition,
@@ -73,6 +74,7 @@ export function App() {
           <Route path="/loans" element={<Loans />} />
           <Route path="/wallet" element={<Wallet />} />
         </Routes>
+        <Toaster />
       </BrowserRouter>
     </QueryClientProvider>
   );

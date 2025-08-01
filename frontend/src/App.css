@@ -95,6 +95,7 @@
 body {
   scroll-behavior: smooth;
   font-family: "Ubuntu Sans";
+  background-color: #fffdf6;
 }
 
 .dark {

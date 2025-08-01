@@ -1,19 +1,19 @@
 import { BACKEND_URL } from "@/config";
 import { useQuery } from "@tanstack/react-query";
 import { Stock, TokenizedAsset, FullTokenizedAssets } from "@/types";
-import { STOCK_LOGOS } from "@/assets";
+import { useAppKitAccount } from "@reown/appkit/react-core";
+import { getStocks } from "./useStocks";
 
-export function useTokens(userAccountId: string | undefined) {
-  if (!userAccountId) {
-    throw new Error("User account ID is required");
-  }
+export function useTokens() {
+  const { address } = useAppKitAccount();
   const {
     data: tokenizedAssets,
     isLoading,
     error,
   } = useQuery({
     queryKey: ["tokenizedAssets"],
-    queryFn: () => getAndProcessTokenizedAssets(userAccountId),
+    queryFn: async () => await getAndProcessTokenizedAssets(address),
+    enabled: !!address,
   });
   return { tokenizedAssets, isLoading, error };
 }
@@ -35,25 +35,28 @@ async function processTokenizedAssets(
   tokenizedAssets: TokenizedAsset
 ): Promise<FullTokenizedAssets> {
   const appleStock: Stock = {
-    symbol: "AAPL",
-    name: "Apple Inc.",
-    price: 150.75,
-    change: 1.25,
+    symbol: tokenizedAssets.stockSymbol,
+    name: tokenizedAssets.stockSymbol,
+    price: await getAppleStockPrice(),
+    change: tokenizedAssets.stockChange,
     changePercent: 0.83,
-    logo: STOCK_LOGOS.AAPL,
-    quantity: 10,
+    logo: tokenizedAssets.stockLogo,
+    quantity: tokenizedAssets.tokenizedAmount,
   };
   const appleTokenizedAsset = {
     stock: appleStock,
-    amount: tokenizedAssets.amount,
+    amount: tokenizedAssets.tokenizedAmount,
   };
   return appleTokenizedAsset;
   // TODO: add other stocks
 }
 
 async function getAndProcessTokenizedAssets(
-  userAccountId: string
+  userAccountId: string | undefined
 ): Promise<FullTokenizedAssets[]> {
+  if (!userAccountId) {
+    return [];
+  }
   const tokenizedAssets = await getTokenizedAssets(userAccountId);
   if (tokenizedAssets.length === 0) {
     return [];
@@ -61,6 +64,10 @@ async function getAndProcessTokenizedAssets(
   const processedTokenizedAssets = await Promise.all(
     tokenizedAssets.map(processTokenizedAssets)
   );
-
   return processedTokenizedAssets;
+}
+
+async function getAppleStockPrice(): Promise<number> {
+  const appleStock = await getStocks();
+  return appleStock.find((stock) => stock.symbol === "AAPL")?.price || 0;
 }

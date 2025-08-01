@@ -18,7 +18,7 @@ function Stocks() {
             className={`flex flex-col gap-4 rounded-3xl p-3 h-[150px] md:w-[300px] w-full cursor-pointer hover:shadow-sm transition-all duration-300 ${
               selectedStock === stock.symbol
                 ? "border-1 border-[#ff9494]"
-                : "border-1 border-gray-200 "
+                : "border-1 border-gray-300 "
             }`}
             onClick={() => setSelectedStock(stock.symbol)}
           >

@@ -30,9 +30,6 @@ async function getPortfolioHistory(): Promise<PortfolioHistoryData[]> {
   const response = await fetch(`${BACKEND_URL}/portfolio-history`);
   const data = await response.json();
 
-  console.log("Portfolio history data:", data);
-
-  // The response is a single object with history property, not an array
   if (!data || !data.history) {
     return [];
   }
@@ -48,7 +45,7 @@ async function getPortfolioHistory(): Promise<PortfolioHistoryData[]> {
   }));
 }
 
-async function getStocks() {
+export async function getStocks(): Promise<Stock[]> {
   const response = await fetch(`${BACKEND_URL}/positions`);
   const data: PositionsResponse = await response.json();
   const stocks = await Promise.all(

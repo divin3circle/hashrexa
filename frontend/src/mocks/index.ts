@@ -58,7 +58,7 @@ export const MOCK_TOKENS: Token[] = [
     symbol: "HASH",
     name: "HASH",
     amount: 0,
-    valueUSD: 0.996,
+    valueUSD: 0.966,
     icon: STOCK_LOGOS.HASH,
   },
 ];

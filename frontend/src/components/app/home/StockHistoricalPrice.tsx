@@ -30,7 +30,7 @@ export function StockHistoricalPrice() {
 
   if (isLoading)
     return (
-      <div className="flex items-center flex-col justify-center h-[570px] border border-gray-200 rounded-3xl">
+      <div className="flex items-center flex-col justify-center h-[570px] border border-gray-300 rounded-3xl">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
@@ -41,7 +41,7 @@ export function StockHistoricalPrice() {
   const filteredData = portfolioData;
 
   return (
-    <Card className="pt-0 shadow-none border border-gray-200 rounded-3xl">
+    <Card className="pt-0 shadow-none border border-gray-300 rounded-3xl bg-[#fffdf6]">
       <CardHeader className="flex items-center gap-2 space-y-0 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle className="text-xl font-bold">
