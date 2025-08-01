@@ -1,6 +1,6 @@
 import { STOCK_LOGOS } from "@/assets";
 import { useTokens } from "@/hooks/useTokens";
-import { Loader2, ChevronDown, Search } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 function TokenizedTable() {
   const { tokenizedAssets, isLoading, error } = useTokens();
