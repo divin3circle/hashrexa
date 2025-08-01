@@ -3,9 +3,9 @@ import {
   Position,
   PositionsResponse,
   Stock,
-  StockHistoricalPrice,
+  PortfolioHistoryData,
 } from "@/types";
-import { MOCK_STOCK_HISTORICAL_PRICE } from "@/mocks";
+
 import { BACKEND_URL } from "@/config";
 
 const useStocks = () => {
@@ -17,18 +17,35 @@ const useStocks = () => {
   return { data, isLoading, error };
 };
 
-export const useStockHistoricalPrice = (symbol: string) => {
-  const { data, isLoading, error } = useQuery<StockHistoricalPrice[]>({
-    queryKey: ["stock-historical-price", symbol],
-    queryFn: () => getStockHistoricalPrice(symbol),
+export const useHistorical = () => {
+  const { data, isLoading, error } = useQuery<PortfolioHistoryData[]>({
+    queryKey: ["portfolio-history"],
+    queryFn: () => getPortfolioHistory(),
   });
 
   return { data, isLoading, error };
 };
 
-async function getStockHistoricalPrice(symbol: string) {
-  console.log(symbol);
-  return MOCK_STOCK_HISTORICAL_PRICE;
+async function getPortfolioHistory(): Promise<PortfolioHistoryData[]> {
+  const response = await fetch(`${BACKEND_URL}/portfolio-history`);
+  const data = await response.json();
+
+  console.log("Portfolio history data:", data);
+
+  // The response is a single object with history property, not an array
+  if (!data || !data.history) {
+    return [];
+  }
+
+  const history = data.history;
+  const { equity, profit_loss, profit_loss_pct, timestamp } = history;
+
+  return timestamp.map((ts: number, index: number) => ({
+    date: new Date(ts * 1000).toISOString().split("T")[0],
+    equity: parseFloat(equity[index] || "0"),
+    profitLoss: parseFloat(profit_loss[index] || "0"),
+    profitLossPercent: parseFloat(profit_loss_pct[index] || "0"),
+  }));
 }
 
 async function getStocks() {

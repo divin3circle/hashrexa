@@ -79,6 +79,24 @@ export interface StockHistoricalPrice {
   price: number;
 }
 
+export interface PortfolioHistory {
+  history: {
+    base_value: string;
+    equity: string[];
+    profit_loss: string[];
+    profit_loss_pct: string[];
+    timeframe: string;
+    timestamp: number[];
+  };
+}
+
+export interface PortfolioHistoryData {
+  date: string;
+  equity: number;
+  profitLoss: number;
+  profitLossPercent: number;
+}
+
 export interface FullLoanDetails {
   collateralTokenImage: string;
   collateralTokenSymbol: string;

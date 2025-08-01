@@ -35,6 +35,7 @@ func SetUpRoutes(app *app.Application) *chi.Mux {
 	r.Get("/tokenized-assets/{userAccountId}", app.UserHandler.HandleGetUserTokenizedAssets)
 	r.Get("/portfolio/{userAccountId}", app.UserHandler.HandleGetUserPortfolio)
 	r.Get("/stock-logo/{stockSymbol}", app.UserHandler.HandleGetStockLogo)
+	r.Get("/portfolio-history", app.UserHandler.HandlePortfolioHistory)
 
 	return r
 }

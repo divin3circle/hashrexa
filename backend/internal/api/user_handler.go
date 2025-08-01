@@ -328,6 +328,30 @@ func (u *UserHandler) HandleGetStockLogo(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Request) {
+	req := alpaca.GetPortfolioHistoryRequest{
+		Period: "30D",
+		TimeFrame: alpaca.TimeFrame("1H"),
+		DateEnd: time.Now(),
+		ExtendedHours: false,
+	}
+	history, err := u.Alpaca.GetPortfolioHistory(req)
+	if err != nil {
+		fmt.Println("Error getting portfolio history: ", err)
+		http.Error(w, "Failed to get portfolio history", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
+		"history": history,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode portfolio history", http.StatusInternalServerError)
+		return
+	}
+}
+
 func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
 	fmt.Println("🟣 Get topic data from the Hedera Mirror Node")
 	topicMirrorNodeApiUrl :=

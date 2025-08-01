@@ -1,6 +1,3 @@
-"use client";
-
-import * as React from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
 import {
@@ -18,89 +15,42 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useStockHistoricalPrice } from "@/hooks/useStocks";
+import { useHistorical } from "@/hooks/useStocks";
 import { Loader2 } from "lucide-react";
-import { useStockStore } from "@/store";
 
 const chartConfig = {
-  price: {
-    label: "Stock Price",
+  equity: {
+    label: "Portfolio Value",
     color: "#3B82F6",
   },
 } satisfies ChartConfig;
 
 export function StockHistoricalPrice() {
-  const { selectedStock } = useStockStore();
-  const [timeRange, setTimeRange] = React.useState("90d");
-
-  const {
-    data: stockData,
-    isLoading,
-    error,
-  } = useStockHistoricalPrice(selectedStock);
+  const { data: portfolioData, isLoading, error } = useHistorical();
 
   if (isLoading)
     return (
-      <div className="flex items-center flex-col justify-center h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin" />
+      <div className="flex items-center flex-col justify-center h-[570px] border border-gray-200 rounded-3xl">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   if (error) return <div>Error: {error.message}</div>;
 
-  if (!stockData) return <div>No data found</div>;
+  if (!portfolioData) return <div>No data found</div>;
 
-  const filteredData = stockData.filter((item) => {
-    const date = new Date(item.date);
-    const referenceDate = new Date("2024-06-30");
-    let daysToSubtract = 90;
-    if (timeRange === "30d") {
-      daysToSubtract = 30;
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7;
-    }
-    const startDate = new Date(referenceDate);
-    startDate.setDate(startDate.getDate() - daysToSubtract);
-    return date >= startDate;
-  });
+  const filteredData = portfolioData;
 
   return (
     <Card className="pt-0 shadow-none border border-gray-200 rounded-3xl">
       <CardHeader className="flex items-center gap-2 space-y-0 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1">
           <CardTitle className="text-xl font-bold">
-            {selectedStock} Historical Price
+            Portfolio Historical Performance
           </CardTitle>
           <CardDescription>
-            Showing {selectedStock} price performance for the selected time
-            period
+            Showing portfolio value performance for the selected time period
           </CardDescription>
         </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger
-            className="hidden w-[160px] rounded-lg sm:ml-auto sm:flex"
-            aria-label="Select a value"
-          >
-            <SelectValue placeholder="Last 3 months" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="90d" className="rounded-lg">
-              Last 3 months
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Last 30 days
-            </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
-              Last 7 days
-            </SelectItem>
-          </SelectContent>
-        </Select>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
@@ -109,15 +59,15 @@ export function StockHistoricalPrice() {
         >
           <AreaChart data={filteredData}>
             <defs>
-              <linearGradient id="fillprice" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillequity" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
-                  stopColor="var(--color-price)"
+                  stopColor="var(--color-equity)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="0%"
-                  stopColor="var(--color-price)"
+                  stopColor="var(--color-equity)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
@@ -142,8 +92,9 @@ export function StockHistoricalPrice() {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => `$${value.toFixed(2)}`}
+              tickFormatter={(value) => `$${value.toLocaleString()}`}
               minTickGap={32}
+              domain={[98000, 100000]}
             />
 
             <ChartTooltip
@@ -162,10 +113,10 @@ export function StockHistoricalPrice() {
               }
             />
             <Area
-              dataKey="price"
+              dataKey="equity"
               type="natural"
-              fill="url(#fillprice)"
-              stroke="var(--color-price)"
+              fill="url(#fillequity)"
+              stroke="var(--color-equity)"
               strokeWidth={2}
             />
             <ChartLegend content={<ChartLegendContent />} />
