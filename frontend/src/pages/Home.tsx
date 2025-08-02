@@ -69,7 +69,7 @@ function Home() {
                       <div className="flex items-center gap-1.5">
                         <img
                           src={stock.stock.logo}
-                          className="w-8 h-8 rounded-full "
+                          className="w-8 h-8 rounded-full"
                         />
                         <div className="flex flex-col">
                           <p className="text-sm font-semibold">
