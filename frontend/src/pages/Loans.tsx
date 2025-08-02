@@ -27,7 +27,7 @@ function Loans() {
           {/* top*/}
           <div className="flex flex-col gap-2 md:flex-row">
             <div className="flex flex-col gap-2 w-full md:w-1/2">
-              <div className="h-[165px] bg-[#eeeeee] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
+              <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-base font-semibold">
                     Available Collateral
@@ -46,7 +46,7 @@ function Loans() {
                   <p className="text-sm text-gray-500">$14,090.45 </p>
                 </div>
               </div>
-              <div className="h-[165px] bg-[#eeeeee] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
+              <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex flex-col h-[130px] justify-between w-2/3">
                     <p className="text-base font-semibold">Loan Health</p>
@@ -60,7 +60,7 @@ function Loans() {
                 </div>
               </div>
             </div>
-            <div className="h-[340px] bg-[#eeeeee] border border-gray-200 rounded-3xl flex flex-col gap-2 w-full md:w-1/2">
+            <div className="h-[340px] bg-[#fffdf6] border border-gray-200 rounded-3xl flex flex-col gap-2 w-full md:w-1/2">
               <div className="flex items-center justify-between p-4">
                 <p className="text-base font-semibold">Current Rate</p>
                 <FaAngleDoubleUp className={`text-green-500 text-2xl`} />
@@ -84,7 +84,7 @@ function Loans() {
         {/* rhs */}
         <div className="flex flex-col gap-4 w-full md:w-[45%] ">
           {/* top */}
-          <div className="bg-[#eeeeee] border border-gray-200 rounded-3xl p-4 h-[500px]">
+          <div className="bg-[#fffdf6] border border-gray-200 rounded-3xl p-4 h-[500px]">
             <div className="flex items-center justify-between my-2">
               <h1 className="text-lg font-semibold">Lending Pool Analytics</h1>
               <div className="flex items-center gap-2 bg-[#f5f5f5] rounded-full px-2 py-1 border border-gray-200">
@@ -109,7 +109,7 @@ function Loans() {
 
           {/* bottom */}
           <div className="flex flex-col md:flex-row gap-4 w-full">
-            <div className="bg-[#eeeeee] border border-gray-200 rounded-3xl p-3 h-[240px] w-full">
+            <div className="bg-[#fffdf6] border border-gray-200 rounded-3xl p-3 h-[240px] w-full">
               <div className="flex items-center gap-2 w-full my-2">
                 <div className="bg-[#e5e3e3] rounded-full p-2 border border-gray-200">
                   <FaWallet className="text-primary text-xl" />
@@ -129,7 +129,7 @@ function Loans() {
                 Claim
               </button>
             </div>
-            <div className="bg-[#eeeeee] border border-gray-200 rounded-3xl p-3 h-[240px] w-full">
+            <div className="bg-[#fffdf6] border border-gray-200 rounded-3xl p-3 h-[240px] w-full">
               <div className="flex items-center gap-2 w-full my-2">
                 <div className="bg-[#e5e3e3] rounded-full p-2 border border-gray-200">
                   <PiHandDepositFill className="text-primary text-xl" />

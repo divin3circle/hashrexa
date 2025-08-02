@@ -29,7 +29,7 @@ const loanHistoryData = [
 
 function LoansTable() {
   return (
-    <div className="bg-[#eeeeee] rounded-3xl border border-gray-200 overflow-hidden h-[400px]">
+    <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 overflow-hidden h-[400px]">
       <div className="p-6 ">
         <h3 className="text-lg font-semibold text-gray-900">Loan History</h3>
       </div>
@@ -59,7 +59,7 @@ function LoansTable() {
             {loanHistoryData.map((loan) => (
               <tr
                 key={loan.id}
-                className="border-b border-gray-100 hover:bg-[#eeeeee]/50 duration-300 transition-colors cursor-pointer h-[70px]"
+                className="border-b border-gray-100 hover:bg-[#fffdf6]/50 duration-300 transition-colors cursor-pointer h-[70px]"
               >
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-3">
