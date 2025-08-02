@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"github.com/imroc/req/v3"
+	"github.com/joho/godotenv"
 )
 
 type LoanStatus struct {
@@ -200,7 +201,7 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 	}
 	fmt.Println("Allowed tokenized assets found✅")
 
-	amountToMint := positions[0].QtyAvailable.InexactFloat64() * 0.75
+	amountToMint := positions[0].QtyAvailable.InexactFloat64()
 
 	// mint and record tokenized assets
 	for _, asset := range allowedTokenizedAssets {
@@ -466,6 +467,7 @@ func (u *UserHandler) mint(amountToMint float64) (bool, error) {
 		FreezeWith(u.Client)
 
 		if err != nil {
+			fmt.Println("Error freezing transaction: ", err)
 			return false, err
 	}
 
@@ -474,14 +476,17 @@ func (u *UserHandler) mint(amountToMint float64) (bool, error) {
 			Execute(u.Client)
 	
 	if err != nil {
+		fmt.Println("Error executing transaction: ", err)
 		return false, err
 	}
 	
 	receipt, err := txResponse.GetReceipt(u.Client)
 	
 	if err != nil {
+		fmt.Println("Error getting receipt: ", err)
 		return false, err
 	}
+	fmt.Println("Txn Receipt: ", receipt)
 	
 	status := receipt.Status
 	
@@ -603,4 +608,44 @@ func (u *UserHandler) getUserPortfolio(topicId string) (Portfolio, error) {
 		OptionsAssets: len(positions),
 		TokenizedAssets: len(tokenizedAssets), 
 	}, nil
+}
+
+func (u *UserHandler) GrantKyc(userAccountId, tokenId string) (bool, error) {
+	tkId, err := hiero.TokenIDFromString(tokenId)
+	if err != nil {
+		return false, err
+	}
+	accountId, err := hiero.AccountIDFromString(userAccountId)
+	if err != nil {
+		return false, err
+	}
+	err = godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	operatorKeyStr := os.Getenv("MY_PRIVATE_KEY")
+	if operatorKeyStr == "" {
+		log.Fatal("Must set MY_ACCOUNT_ID, MY_PRIVATE_KEY")
+	}
+
+	operatorKey, _ := hiero.PrivateKeyFromStringEd25519(operatorKeyStr)
+	transaction, err := hiero.NewTokenGrantKycTransaction().
+		SetTokenID(tkId).
+		SetAccountID(accountId).
+		FreezeWith(u.Client)
+	if err != nil {
+		return false, err
+	}
+	txResponse, err := transaction.Sign(operatorKey).Execute(u.Client)
+	if err != nil {
+		return false, err
+	}
+	receipt, err := txResponse.GetReceipt(u.Client)
+	if err != nil {
+		return false, err
+	}
+	status := receipt.Status
+	fmt.Printf("The transaction consensus status is %v\n", status.String())
+	return true, nil
 }

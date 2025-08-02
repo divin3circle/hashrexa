@@ -58,9 +58,11 @@ func NewApplication() (*Application, error) {
 	}
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
+	uh := api.NewUserHandler(db, client, alpacaClient)
+
 	app := &Application{
 		Logger: logger,
-		UserHandler: api.NewUserHandler(db, client, alpacaClient),
+		UserHandler: uh,
 		DB: db,
 		Client: client,
 		Alpaca: alpacaClient,

@@ -17,12 +17,15 @@ import { useAppKitAccount } from "@reown/appkit/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { PUBLIC_KEY } from "@/lib/utils";
+import { useAssociate } from "./useAssociate";
 
 export function useTopicManager() {
   const { address } = useAppKitAccount();
   const { topicExists, error } = useTopicExists();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { associate, isPending: isAssociatePending } =
+    useAssociate("0.0.6494054");
 
   const { mutate: createTopicMutation, isPending } = useMutation({
     mutationFn: async () => createTopic(address),
@@ -32,6 +35,7 @@ export function useTopicManager() {
       console.log("Topic Id:", topicId);
       const success = await registerTopic(address, topicId);
       if (success) {
+        associate();
         navigate("/home");
       }
     },
@@ -45,6 +49,7 @@ export function useTopicManager() {
     isPending,
     error,
     createTopicMutation,
+    isAssociatePending,
   };
 }
 

@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 
 function Home() {
   const { data: loans, isLoading, error } = useLoans();
-  const { mutate, isPending } = useTokenizePortfolio();
+  const { mutate, isPending, isAssociatePending } = useTokenizePortfolio();
   const { tokenizedAssets, isLoading: isTokenizedAssetsLoading } = useTokens();
   const navigate = useNavigate();
 
@@ -111,7 +111,7 @@ function Home() {
                 className="w-full mt-4 rounded-3xl flex items-center justify-center gap-2"
                 onClick={() => mutate()}
               >
-                {isPending
+                {isPending || isAssociatePending
                   ? "Tokenizing..."
                   : tokenizedAssets.length === 0
                   ? "Start Tokenizing"

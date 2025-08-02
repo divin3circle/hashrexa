@@ -5,6 +5,7 @@ import { useAppKitAccount } from "@reown/appkit/react-core";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useAssociate } from "./useAssociate";
 
 export function usePortfolioBalance() {
   const { address } = useAppKitAccount();
@@ -28,10 +29,15 @@ export const useWalletTokens = () => {
 
 export function useTokenizePortfolio() {
   const { address } = useAppKitAccount();
+  const { associate, isPending: isAssociatePending } =
+    useAssociate("0.0.6476439");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { mutate, isPending, error, data } = useMutation({
-    mutationFn: async () => await tokenizePortfolio(address),
+    mutationFn: async () => {
+      await associate();
+      await tokenizePortfolio(address);
+    },
     onSuccess: () => {
       toast.success("Portfolio tokenized successfully");
       queryClient.invalidateQueries({ queryKey: ["portfolio-balance"] });
@@ -43,7 +49,7 @@ export function useTokenizePortfolio() {
       console.error("Error tokenizing portfolio:", error);
     },
   });
-  return { mutate, isPending, error, data };
+  return { mutate, isPending, error, data, isAssociatePending };
 }
 
 async function getWalletTokens() {

@@ -9,7 +9,8 @@ import { motion } from "framer-motion";
 
 function Setup() {
   const [showTopicModal, setShowTopicModal] = useState(false);
-  const { createTopicMutation, isPending } = useTopicManager();
+  const { createTopicMutation, isPending, isAssociatePending } =
+    useTopicManager();
 
   return (
     <div className="max-w-6xl mx-auto px-2 flex flex-col items-center justify-center h-screen">
@@ -30,7 +31,11 @@ function Setup() {
         </p>
         <Lottie animationData={createTopicAnimation} loop={true} />
         <Button onClick={() => createTopicMutation()} className="rounded-full">
-          {isPending ? <FaSpinner className="animate-spin" /> : "Create Topic"}
+          {isPending || isAssociatePending ? (
+            <FaSpinner className="animate-spin" />
+          ) : (
+            "Create Topic"
+          )}
         </Button>
         <p className="text-xs text-gray-500 text-start md:text-center">
           A topic is a collection of messages that are stored on the Hedera
