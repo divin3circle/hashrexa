@@ -354,34 +354,6 @@ func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func getUserDataFromTopic(topicId string) (TopicMessagesMNAPIResponse, error) {
-	fmt.Println("🟣 Get topic data from the Hedera Mirror Node")
-	topicMirrorNodeApiUrl :=
-		fmt.Sprintf("https://testnet.mirrornode.hedera.com/api/v1/topics/%s/messages?encoding=base64&limit=5&order=asc&sequencenumber=1", topicId)
-	fmt.Printf("The token Hedera Mirror Node API URL: %s\n", topicMirrorNodeApiUrl)
-
-	httpResp, err := req.R().Get(topicMirrorNodeApiUrl)
-	if err != nil {
-		log.Fatalf("Failed to fetch token URL: %v", err)
-		return TopicMessagesMNAPIResponse{}, err
-	}
-	var topicResp TopicMessagesMNAPIResponse
-	err = json.Unmarshal(httpResp.Bytes(), &topicResp)
-	if err != nil {
-		log.Fatalf("Failed to parse JSON of response fetched from topic message URL: %v", err)
-		return TopicMessagesMNAPIResponse{}, err
-	}
-
-	topicMessages := topicResp.Messages
-	fmt.Println("Messages retrieved from this topic:")
-	for _, entry := range topicMessages {
-		seqNum := entry.SequenceNumber
-		decodedMsg, _ := base64.StdEncoding.DecodeString(entry.Message)
-		fmt.Printf("#%v: %s\n", seqNum, decodedMsg)
-	}
-
-	return topicResp, nil
-}
 
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)
