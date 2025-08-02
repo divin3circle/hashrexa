@@ -43,7 +43,7 @@ function Navbar() {
           <Link
             to="/loans"
             className={`text-base font-semibold lowercase mt-1.5 mx-4 ${
-              pathname.pathname === "/loan"
+              pathname.pathname === "/loans"
                 ? "text-[#ff9494] font-bold text-lg"
                 : ""
             }`}

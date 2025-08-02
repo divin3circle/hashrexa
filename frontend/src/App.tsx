@@ -15,6 +15,7 @@ import Setup from "./pages/Setup";
 import Home from "./pages/Home";
 import Loans from "./pages/Loans";
 import Wallet from "./pages/Wallet";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/loans" element={<Loans />} />
           <Route path="/wallet" element={<Wallet />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
         <Toaster />
       </BrowserRouter>
