@@ -13,7 +13,7 @@ function Profile() {
   const userData = {
     name: "Sylus Abel",
     role: "DeFi Investor",
-    location: "San Francisco, CA",
+    accountId: "apcalbube97332hhdnexpmadeihwnm",
     email: "sylus@hashrexa.com",
     phone: "+1 (555) 123-4567",
     bio: "Passionate about DeFi and tokenized assets",
@@ -32,7 +32,7 @@ function Profile() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 max-w-4xl mx-auto">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-8 ">
             <div className="flex flex-col items-center text-center">
@@ -48,8 +48,11 @@ function Profile() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   {userData.name}
                 </h2>
-                <p className="text-lg text-gray-600 mb-1">{userData.role}</p>
-                <p className="text-gray-500">{userData.location}</p>
+                <p className="text-lg text-gray-600 mb-1">Alpaca Account ID</p>
+                <p className="text-gray-500">
+                  {userData.accountId.slice(0, 6)}...
+                  {userData.accountId.slice(-6)}
+                </p>
               </div>
               <button className="flex items-center gap-2 border border-gray-300 text-gray-700 px-12 py-2 rounded-3xl transition-colors">
                 <Edit className="w-4 h-4" />
@@ -115,6 +118,57 @@ function Profile() {
               </div>
             </div>
           </div>
+          <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Financial Information
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Total Loans
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {loans?.length || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Total Collateral
+                  </label>
+                  <p className="text-gray-900 font-medium">$4,000</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Total Borrowed
+                  </label>
+                  <p className="text-gray-900 font-medium">$1,000</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Total Interest
+                  </label>
+                  <p className="text-gray-900 font-medium">$100</p>
+                </div>
+              </div>
+              <div className="md:col-span-2 flex justify-between items-start">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-600">
+                    Loan Health
+                  </label>
+                  <p className="text-gray-900 font-medium">53%</p>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="flex flex-col items-center justify-between md:flex-row gap-4 mb-8">
             <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-6 w-full md:w-1/2">
               <div className="mb-4">
@@ -149,50 +203,6 @@ function Profile() {
                   Total tokenized assets
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-6">
-            <div className="mb-4">
-              <p className="text-lg font-semibold text-gray-900 mb-1">
-                Loans Taken
-              </p>
-            </div>
-            <div className="mb-4">
-              <p className="text-3xl font-bold text-gray-900">
-                {loans?.length || 3}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Total active loans</p>
-            </div>
-          </div>
-
-          {/* HASH Provided */}
-          <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-6">
-            <div className="mb-4">
-              <p className="text-lg font-semibold text-gray-900 mb-1">
-                HASH Provided.
-              </p>
-            </div>
-            <div className="mb-4">
-              <p className="text-3xl font-bold text-gray-900">$20,700</p>
-              <p className="text-sm text-gray-600 mt-1">To lending pool</p>
-            </div>
-          </div>
-
-          {/* Liquidation Status */}
-          <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 p-6">
-            <div className="mb-4">
-              <p className="text-lg font-semibold text-gray-900 mb-1">
-                Liquidation Status
-              </p>
-            </div>
-            <div className="mb-2">
-              <p className="text-3xl font-bold text-red-600 mt-4">Warning</p>
-              <p className="text-sm text-gray-600 mt-4 leading-relaxed">
-                Your collateral is okay. There's a 53% chance of liquidation.
-              </p>
             </div>
           </div>
         </div>
