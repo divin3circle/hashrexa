@@ -1,4 +1,4 @@
-package com.javaguy.hedera.files;
+package com.javaguy.hedera;
 
 import com.hedera.hashgraph.sdk.AccountId;
 import com.hedera.hashgraph.sdk.Client;
