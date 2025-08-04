@@ -1,4 +1,4 @@
-package com.javaguy.hedera.files;
+package com.javaguy.hedera;
 
 
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package com.javaguy.hedera.files;
+package com.javaguy.hedera;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
