@@ -6,13 +6,10 @@ import (
 	"os"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
-	"github.com/holiman/uint256"
 	"github.com/joho/godotenv"
 )
 
-var newContractID, _ = hiero.ContractIDFromString("0.0.6499383")
-
-func TestCall(){
+func AssociateContractWithTokens() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -31,22 +28,37 @@ func TestCall(){
 
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
-transaction := hiero.NewContractCallQuery().
-SetContractID(newContractID).
-SetGas(600_000).
-SetFunction("interestRate", nil)
+
+	var contractID, _ = hiero.ContractIDFromString("0.0.6499289")
 
 
-txResponse, err := transaction.Execute(client)
-if err != nil {
-panic(err)
-}
+	transaction := hiero.NewContractUpdateTransaction().
+	SetContractID(contractID).
+	SetMaxAutomaticTokenAssociations(100)
 
-result := txResponse.ContractCallResult
-if len(result) == 32 {
-	var value uint256.Int
-	value.SetBytes(result)
-	fmt.Println("Interest Rate: \n", value.String())
-}
+	modifyMaxTransactionFee := transaction.SetMaxTransactionFee(hiero.HbarFrom(20, hiero.HbarUnits.Hbar))
+
+
+	freezeTransaction, err := modifyMaxTransactionFee.FreezeWith(client)
+	if err != nil {
+	panic(err)
+	}
+
+
+	txResponse, err := freezeTransaction.Execute(client)
+	if err != nil {
+	panic(err)
+	}
+
+
+	receipt, err := txResponse.GetReceipt(client)
+	if err != nil {
+		panic(err)
+	}
+
+
+	transactionStatus := receipt.Status
+
+	fmt.Printf("The transaction consensus status %v\n", transactionStatus)
 
 }

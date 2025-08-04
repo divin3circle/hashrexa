@@ -18,26 +18,26 @@ contract LendingPool {
     address public owner;
 
     // Pool config (industry standard; can be changed by owner)
-    uint256 public interestRate = 500;      // 5% annual
-    uint256 public ltv = 7000;              // 70% Loan-To-Value
-    uint256 public liquidationThreshold = 8000; // 80% Liquidation threshold
+    int64 public interestRate = 500;      // 5% annual
+    int64 public ltv = 7000;              // 70% Loan-To-Value
+    int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
 
     // User positions
     struct Position {
-        uint256 suppliedHASH;
-        uint256 borrowedHASH;
-        uint256 collateralDAAPL;
+        int64 suppliedHASH;
+        int64 borrowedHASH;
+        int64 collateralDAAPL;
         uint256 lastInterestBlock;
     }
     mapping(address => Position) public positions;
 
     // Events
-    event DepositHASH(address indexed user, uint256 amount);
-    event WithdrawHASH(address indexed user, uint256 amount);
-    event DepositCollateral(address indexed user, uint256 amount);
-    event BorrowHASH(address indexed user, uint256 amount);
-    event RepayHASH(address indexed user, uint256 amount);
-    event Liquidate(address indexed user, uint256 repaid, uint256 collateralSeized);
+    event DepositHASH(address indexed user, int64 amount);
+    event WithdrawHASH(address indexed user, int64 amount);
+    event DepositCollateral(address indexed user, int64 amount);
+    event BorrowHASH(address indexed user, int64 amount);
+    event RepayHASH(address indexed user, int64 amount);
+    event Liquidate(address indexed user, int64 repaid, int64 collateralSeized);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
@@ -49,7 +49,7 @@ contract LendingPool {
     }
 
     // Deposit HASH to pool
-    function depositHASH(uint256 amount) external {
+    function depositHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(HASH, msg.sender, address(this), amount), "HASH transfer failed");
         positions[msg.sender].suppliedHASH += amount;
@@ -57,7 +57,7 @@ contract LendingPool {
     }
 
     // Withdraw supplied HASH
-    function withdrawHASH(uint256 amount) external {
+    function withdrawHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].suppliedHASH >= amount, "Insufficient supply");
         positions[msg.sender].suppliedHASH -= amount;
@@ -66,7 +66,7 @@ contract LendingPool {
     }
 
     // Deposit dAAPL as collateral
-    function depositCollateral(uint256 amount) external {
+    function depositCollateral(int64 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(dAAPL, msg.sender, address(this), amount), "dAAPL transfer failed");
         positions[msg.sender].collateralDAAPL += amount;
@@ -74,9 +74,9 @@ contract LendingPool {
     }
 
     // Borrow HASH against dAAPL collateral
-    function borrowHASH(uint256 amount) external {
+    function borrowHASH(int64 amount) external {
         require(amount > 0, "Amount required");
-        uint256 maxBorrow = (positions[msg.sender].collateralDAAPL * ltv) / 10000;
+        int64 maxBorrow = (positions[msg.sender].collateralDAAPL * int64(ltv)) / 10000;
         require(positions[msg.sender].borrowedHASH + amount <= maxBorrow, "Exceeds LTV");
         require(_htsTransfer(HASH, address(this), msg.sender, amount), "HASH borrow transfer failed");
         positions[msg.sender].borrowedHASH += amount;
@@ -85,7 +85,7 @@ contract LendingPool {
     }
 
     // Repay borrowed HASH
-    function repayHASH(uint256 amount) external {
+    function repayHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].borrowedHASH >= amount, "Too much repayment");
         require(_htsTransfer(HASH, msg.sender, address(this), amount), "HASH repay transfer failed");
@@ -94,23 +94,24 @@ contract LendingPool {
     }
 
     // Interest accrual (simple annual, block-based)
-    function accruedInterest(address user) public view returns (uint256) {
-        Position memory pos = positions[user];
-        uint256 blocksElapsed = block.number - pos.lastInterestBlock;
-        if (pos.borrowedHASH == 0 || blocksElapsed == 0) return 0;
-        // 2102400 blocks/year (approx Hedera block rate)
-        uint256 interest = (pos.borrowedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
-        return interest;
-    }
+    // function accruedInterest(address user) public view returns (int64) {
+    //     Position memory pos = positions[user];
+    //     uint256 blocksElapsed = block.number - pos.lastInterestBlock;
+    //     if (pos.borrowedHASH == 0 || blocksElapsed == 0) return 0;
+    //     // 2102400 blocks/year (approx Hedera block rate)
+    //     int64 blocksElapsedInt64 = int64(blocksElapsed);
+    //     int64 interest = (pos.borrowedHASH * interestRate * blocksElapsedInt64) / (2102400 * 10000);
+    //     return interest;
+    // }
 
     // Liquidate undercollateralized positions (owner only)
     function liquidate(address user) external onlyOwner {
         Position storage pos = positions[user];
-        uint256 maxDebt = (pos.collateralDAAPL * liquidationThreshold) / 10000;
+        int64 maxDebt = (pos.collateralDAAPL * liquidationThreshold) / 10000;
         require(pos.borrowedHASH > maxDebt, "Healthy position");
 
-        uint256 repayAmt = pos.borrowedHASH;
-        uint256 collateralSeized = pos.collateralDAAPL;
+        int64 repayAmt = pos.borrowedHASH;
+        int64 collateralSeized = pos.collateralDAAPL;
 
         // Repay debt and seize collateral
         require(_htsTransfer(HASH, address(this), owner, repayAmt), "HASH transfer failed");
@@ -123,20 +124,19 @@ contract LendingPool {
     }
 
     // Owner can adjust config
-    function setInterestRate(uint256 rate) external onlyOwner {
+    function setInterestRate(int64 rate) external onlyOwner {
         interestRate = rate;
     }
-    function setLTV(uint256 newLTV) external onlyOwner {
+    function setLTV(int64 newLTV) external onlyOwner {
         ltv = newLTV;
     }
-    function setLiquidationThreshold(uint256 newThresh) external onlyOwner {
+    function setLiquidationThreshold(int64 newThresh) external onlyOwner {
         liquidationThreshold = newThresh;
     }
 
-    // Internal HTS transfer
-    function _htsTransfer(address token, address from, address to, uint256 amount) internal returns (bool) {
+    function _htsTransfer(address token, address from, address to, int64 amount) internal returns (bool) {
         (bool success, bytes memory result) = HTS_PRECOMPILE.call(
-            abi.encodeWithSignature("transferToken(address,address,address,int64)", token, from, to, int64(int256(amount)))
+            abi.encodeWithSignature("transferToken(address,address,address,int64)", token, from, to, amount)
         );
         if (!success) return false;
         int64 responseCode = abi.decode(result, (int64));

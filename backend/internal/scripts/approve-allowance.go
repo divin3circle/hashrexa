@@ -6,13 +6,12 @@ import (
 	"os"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
-	"github.com/holiman/uint256"
 	"github.com/joho/godotenv"
 )
 
-var newContractID, _ = hiero.ContractIDFromString("0.0.6499383")
+var tokenID, _ = hiero.TokenIDFromString("0.0.6494054")
 
-func TestCall(){
+func ApproveAllowance() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -31,22 +30,25 @@ func TestCall(){
 
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
-transaction := hiero.NewContractCallQuery().
-SetContractID(newContractID).
-SetGas(600_000).
-SetFunction("interestRate", nil)
 
+	contractID, _ := hiero.ContractIDFromString("0.0.6499383") 
+	contractAccountID, _ := hiero.AccountIDFromString(contractID.String())
+	
+	transaction := hiero.NewAccountAllowanceApproveTransaction().ApproveTokenAllowance(tokenID, operatorId, contractAccountID, 5_000_000)
 
-txResponse, err := transaction.Execute(client)
-if err != nil {
-panic(err)
-}
+	txResponse, err := transaction.Execute(client)
+	if err != nil {
+		fmt.Println("Error executing transaction:", err)
+		panic(err)
+	}
 
-result := txResponse.ContractCallResult
-if len(result) == 32 {
-	var value uint256.Int
-	value.SetBytes(result)
-	fmt.Println("Interest Rate: \n", value.String())
-}
+	receipt, err := txResponse.GetReceipt(client)
+	
+	if err != nil {
+		fmt.Println("Error executing transaction:", err)
+		panic(err)
+	}
 
+	fmt.Println("Transaction receipt:")
+	fmt.Println(receipt)
 }
