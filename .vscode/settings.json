@@ -1,3 +1,10 @@
 {
-  "cSpell.words": ["alpacahq", "godotenv", "HASHREXA", "hedera", "hiero"]
+  "cSpell.words": [
+    "alpacahq",
+    "godotenv",
+    "HASHREXA",
+    "hedera",
+    "hiero"
+  ],
+  "java.compile.nullAnalysis.mode": "disabled"
 }
