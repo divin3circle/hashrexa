@@ -35,6 +35,25 @@ type StockToken struct {
 	TokenizedAmount float64 `json:"tokenizedAmount"`
 }
 
+type PoolPosition struct {
+	SuppliedHASH      int64 `json:"suppliedHASH"`
+	BorrowedHASH      int64 `json:"borrowedHASH"`
+	CollateralDAAPL   int64 `json:"collateralDAAPL"`
+	LastInterestBlock uint64 `json:"lastInterestBlock"`
+}
+
+type Address struct {
+	Position PoolPosition `json:"position"`
+	LoanHealth float64 `json:"loanHealth"`
+	FeesEarned int64 `json:"feesEarned"`
+}
+
+type Pool struct {
+	ContractId string `json:"contractId"`
+	Ltv int64 `json:"ltv"`
+	InterestRate int64 `json:"interestRate"`
+}
+
 type TopicMessagesMNAPIResponse struct {
 	Messages []struct {
 		SequenceNumber int64  `json:"sequence_number"`
@@ -405,6 +424,15 @@ func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) 
 func getStockLogo(stockSymbol string) (string, error) {
 	fmt.Println("Getting stock logo for: ", stockSymbol)
 	return "https://substackcdn.com/image/fetch/$s_!G1lk!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8ed3d547-94ff-48e1-9f20-8c14a7030a02_2000x2000.jpeg", nil
+}
+
+func getContractId(contractId string) (hiero.ContractID, error) {
+	contractID, err := hiero.ContractIDFromString(contractId)
+	if err != nil {
+		return hiero.ContractID{}, err
+	}
+
+	return contractID, nil
 }
 
 func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, error) {

@@ -17,7 +17,6 @@ contract LendingPool {
     address public constant HASH  = 0x0000000000000000000000000000000000631766;
     address public owner;
 
-    // Pool config (industry standard; can be changed by owner)
     int64 public interestRate = 500;      // 5% annual
     int64 public ltv = 7000;              // 70% Loan-To-Value
     int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
