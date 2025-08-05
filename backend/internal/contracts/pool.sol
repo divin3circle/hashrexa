@@ -11,6 +11,11 @@ interface IHTS {
     function balanceOf(address token, address account) external view returns (uint256);
 }
 
+// Supra Oracle interface
+interface ISupraOracle {
+    function getPrice(uint256 pairId) external view returns (uint256 price, uint256 timestamp);
+}
+
 contract LendingPool {
     // Supported tokens
     address public constant dAAPL = 0x000000000000000000000000000000000062D297;
@@ -21,10 +26,16 @@ contract LendingPool {
     int64 public ltv = 7000;              // 70% Loan-To-Value
     int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
 
-    // Fixed prices for calculations (in USD cents)
-    // TODO: Use Pricefeeds from Supra or Chainlink
-    int64 public constant dAAPL_PRICE = 20417; 
-    int64 public constant HASH_PRICE = 100;   
+    // Supra Oracle address (deploy on Hedera)
+    address public supraOracleAddress;
+    
+    // Pair IDs for Supra Oracle
+    uint256 public constant AAPL_USD_PAIR_ID = 6004; // AAPL_USD from Supra
+    uint256 public constant HBAR_USD_PAIR_ID = 432;  // HBAR_USD from Supra
+    
+    // Fallback prices (in USD cents) - used if oracle fails
+    int64 public constant FALLBACK_AAPL_PRICE = 20417; 
+    int64 public constant FALLBACK_HASH_PRICE = 100;   
 
     // User positions
     struct Position {
@@ -69,6 +80,44 @@ contract LendingPool {
         owner = msg.sender;
     }
 
+    // Get current AAPL price from Supra Oracle
+    function getAAPLPrice() public view returns (int64) {
+        if (supraOracleAddress == address(0)) {
+            return FALLBACK_AAPL_PRICE;
+        }
+        
+        try ISupraOracle(supraOracleAddress).getPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256 timestamp) {
+            // Convert price to cents (assuming 8 decimals from oracle)
+            return int64(uint64(price / 1e6)); // Convert to cents
+        } catch {
+            return FALLBACK_AAPL_PRICE;
+        }
+    }
+
+    // Get current HBAR price from Supra Oracle
+    function getHBARPrice() public view returns (int64) {
+        if (supraOracleAddress == address(0)) {
+            return FALLBACK_HASH_PRICE;
+        }
+        
+        try ISupraOracle(supraOracleAddress).getPrice(HBAR_USD_PAIR_ID) returns (uint256 price, uint256 timestamp) {
+            // Convert price to cents (assuming 8 decimals from oracle)
+            return int64(uint64(price / 1e6)); // Convert to cents
+        } catch {
+            return FALLBACK_HASH_PRICE;
+        }
+    }
+
+    // Calculate accrued interest for a user
+    function accruedInterest(address user) public view returns (int64) {
+        Position memory pos = positions[user];
+        int64 blocksElapsed = int64(uint64(block.number - pos.lastInterestBlock));
+        if (pos.borrowedHASH == 0 || blocksElapsed <= 0) return 0;
+        // 2102400 blocks/year (approx Hedera block rate)
+        int64 interest = (pos.borrowedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
+        return interest;
+    }
+
     function getPoolBalances() external view returns (int64 dAAPLBalance, int64 hashBalance) {
         IHTS hts = IHTS(HTS_PRECOMPILE);
         dAAPLBalance = int64(uint64(hts.balanceOf(dAAPL, address(this))));
@@ -86,19 +135,28 @@ contract LendingPool {
     function getAddressDetails(address user) external view returns (AddressDetails memory) {
         Position memory pos = positions[user];
         
-
-        int64 collateralValue = (pos.collateralDAAPL * dAAPL_PRICE) / 100; // dAAPL has 2 decimals
-        int64 borrowedValue = (pos.borrowedHASH * HASH_PRICE) / 1_000_000; // HASH has 6 decimals   
+        // Get real-time prices from Supra Oracle
+        int64 currentAAPLPrice = getAAPLPrice();
+        int64 currentHBARPrice = getHBARPrice();
         
+        // Calculate values in USD cents using real-time prices
+        int64 collateralValue = (pos.collateralDAAPL * currentAAPLPrice) / 100; // dAAPL has 2 decimals
+        int64 borrowedValue = (pos.borrowedHASH * currentHBARPrice) / 1_000_000; // HASH has 6 decimals
+        
+        // Include accrued interest in borrowed amount
+        int64 totalBorrowed = pos.borrowedHASH + accruedInterest(user);
+        int64 totalBorrowedValue = (totalBorrowed * currentHBARPrice) / 1_000_000;
+        
+        // Calculate loan health with real-time prices and accrued interest
         int64 loanHealth = 10000; 
-        if (borrowedValue > 0 && collateralValue > 0) {
-            int64 healthRatio = (collateralValue * liquidationThreshold) / (borrowedValue * 10000);
+        if (totalBorrowedValue > 0 && collateralValue > 0) {
+            int64 healthRatio = (collateralValue * liquidationThreshold) / (totalBorrowedValue * 10000);
             loanHealth = healthRatio;
             if (loanHealth > 10000) loanHealth = 10000; 
             if (loanHealth < 0) loanHealth = 0;
         }
         
-        int64 userPosition = collateralValue - borrowedValue;
+        int64 userPosition = collateralValue - totalBorrowedValue;
 
         int64 feesEarned = 0;
         if (pos.suppliedHASH > 0) {
@@ -169,18 +227,7 @@ contract LendingPool {
         emit RepayHASH(msg.sender, amount);
     }
 
-    // Interest accrual (simple annual, block-based)
-    // function accruedInterest(address user) public view returns (int64) {
-    //     Position memory pos = positions[user];
-    //     uint256 blocksElapsed = block.number - pos.lastInterestBlock;
-    //     if (pos.borrowedHASH == 0 || blocksElapsed == 0) return 0;
-    //     // 2102400 blocks/year (approx Hedera block rate)
-    //     int64 blocksElapsedInt64 = int64(blocksElapsed);
-    //     int64 interest = (pos.borrowedHASH * interestRate * blocksElapsedInt64) / (2102400 * 10000);
-    //     return interest;
-    // }
-
-    // Liquidate undercollateralized positions (owner only)
+    
     function liquidate(address user) external onlyOwner {
         Position storage pos = positions[user];
         int64 maxDebt = (pos.collateralDAAPL * liquidationThreshold) / 10000;
@@ -189,7 +236,6 @@ contract LendingPool {
         int64 repayAmt = pos.borrowedHASH;
         int64 collateralSeized = pos.collateralDAAPL;
 
-        // Repay debt and seize collateral
         require(_htsTransfer(HASH, address(this), owner, repayAmt), "HASH transfer failed");
         require(_htsTransfer(dAAPL, address(this), owner, collateralSeized), "dAAPL transfer failed");
 
@@ -207,6 +253,10 @@ contract LendingPool {
     }
     function setLiquidationThreshold(int64 newThresh) external onlyOwner {
         liquidationThreshold = newThresh;
+    }
+
+    function setSupraOracleAddress(address oracleAddress) external onlyOwner {
+        supraOracleAddress = oracleAddress;
     }
 
     function _htsTransfer(address token, address from, address to, int64 amount) internal returns (bool) {
