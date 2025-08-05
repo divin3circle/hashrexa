@@ -13,7 +13,7 @@ interface IHTS {
 
 // Supra Oracle interface
 interface ISupraOracle {
-    function getPrice(uint256 pairId) external view returns (uint256 price, uint256 timestamp);
+    function getLatestPrice(uint256 pairId) external view returns (uint256 price, uint256 timestamp);
 }
 
 contract LendingPool {
@@ -26,12 +26,13 @@ contract LendingPool {
     int64 public ltv = 7000;              // 70% Loan-To-Value
     int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
 
-    // Supra Oracle address (deploy on Hedera)
-    address public supraOracleAddress;
+    // Supra Oracle address for Hedera testnet
+    address public supraOracleAddress = 0x6bf7b21145Cbd7BB0b9916E6eB24EDA8A675D7C0;
+    // Storage Contract: 0x6Cd59830AAD978446e6cc7f6cc173aF7656Fb917
     
     // Pair IDs for Supra Oracle
     uint256 public constant AAPL_USD_PAIR_ID = 6004; // AAPL_USD from Supra
-    uint256 public constant HBAR_USD_PAIR_ID = 432;  // HBAR_USD from Supra
+    uint256 public constant USDC_USDT_PAIR_ID = 47;  // USDC_USDT from Supra
     
     // Fallback prices (in USD cents) - used if oracle fails
     int64 public constant FALLBACK_AAPL_PRICE = 20417; 
@@ -80,27 +81,26 @@ contract LendingPool {
         owner = msg.sender;
     }
 
-    // Get current AAPL price from Supra Oracle
     function getAAPLPrice() public view returns (int64) {
         if (supraOracleAddress == address(0)) {
             return FALLBACK_AAPL_PRICE;
         }
         
-        try ISupraOracle(supraOracleAddress).getPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256 timestamp) {
+        try ISupraOracle(supraOracleAddress).getLatestPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256) {
             // Convert price to cents (assuming 8 decimals from oracle)
             return int64(uint64(price / 1e6)); // Convert to cents
         } catch {
+            
             return FALLBACK_AAPL_PRICE;
         }
     }
 
-    // Get current HBAR price from Supra Oracle
-    function getHBARPrice() public view returns (int64) {
+    function getHASHPrice() public view returns (int64) {
         if (supraOracleAddress == address(0)) {
             return FALLBACK_HASH_PRICE;
         }
         
-        try ISupraOracle(supraOracleAddress).getPrice(HBAR_USD_PAIR_ID) returns (uint256 price, uint256 timestamp) {
+        try ISupraOracle(supraOracleAddress).getLatestPrice(USDC_USDT_PAIR_ID) returns (uint256 price, uint256) {
             // Convert price to cents (assuming 8 decimals from oracle)
             return int64(uint64(price / 1e6)); // Convert to cents
         } catch {
@@ -137,15 +137,15 @@ contract LendingPool {
         
         // Get real-time prices from Supra Oracle
         int64 currentAAPLPrice = getAAPLPrice();
-        int64 currentHBARPrice = getHBARPrice();
+        int64 currentHASHPrice = getHASHPrice();
         
         // Calculate values in USD cents using real-time prices
         int64 collateralValue = (pos.collateralDAAPL * currentAAPLPrice) / 100; // dAAPL has 2 decimals
-        int64 borrowedValue = (pos.borrowedHASH * currentHBARPrice) / 1_000_000; // HASH has 6 decimals
+        // int64 borrowedValue = (pos.borrowedHASH * currentHBARPrice) / 1_000_000; // HASH has 6 decimals
         
         // Include accrued interest in borrowed amount
         int64 totalBorrowed = pos.borrowedHASH + accruedInterest(user);
-        int64 totalBorrowedValue = (totalBorrowed * currentHBARPrice) / 1_000_000;
+        int64 totalBorrowedValue = (totalBorrowed * currentHASHPrice) / 1_000_000;
         
         // Calculate loan health with real-time prices and accrued interest
         int64 loanHealth = 10000; 
@@ -257,6 +257,47 @@ contract LendingPool {
 
     function setSupraOracleAddress(address oracleAddress) external onlyOwner {
         supraOracleAddress = oracleAddress;
+    }
+
+    function testPriceFeeds() external view returns (
+        int64 aaplPrice,
+        int64 usdcPrice,
+        bool aaplOracleWorking,
+        bool usdcOracleWorking,
+        uint256 aaplTimestamp,
+        uint256 usdcTimestamp
+    ) {
+        if (supraOracleAddress == address(0)) {
+            aaplPrice = FALLBACK_AAPL_PRICE;
+            aaplOracleWorking = false;
+            aaplTimestamp = 0;
+        } else {
+            try ISupraOracle(supraOracleAddress).getLatestPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256) {
+                aaplPrice = int64(uint64(price / 1e6));
+                aaplOracleWorking = true;
+                aaplTimestamp = block.timestamp;
+            } catch {
+                aaplPrice = FALLBACK_AAPL_PRICE;
+                aaplOracleWorking = false;
+                aaplTimestamp = 0;
+            }
+        }
+
+        if (supraOracleAddress == address(0)) {
+            usdcPrice = FALLBACK_HASH_PRICE;
+            usdcOracleWorking = false;
+            usdcTimestamp = 0;
+        } else {
+            try ISupraOracle(supraOracleAddress).getLatestPrice(USDC_USDT_PAIR_ID) returns (uint256 price, uint256) {
+                usdcPrice = int64(uint64(price / 1e6));
+                usdcOracleWorking = true;
+                usdcTimestamp = block.timestamp;
+            } catch {
+                usdcPrice = FALLBACK_HASH_PRICE;
+                usdcOracleWorking = false;
+                usdcTimestamp = 0;
+            }
+        }
     }
 
     function _htsTransfer(address token, address from, address to, int64 amount) internal returns (bool) {

@@ -9,9 +9,11 @@ import (
 
 	"github.com/divin3circle/hashrexa/backend/internal/app"
 	"github.com/divin3circle/hashrexa/backend/internal/routes"
+	"github.com/divin3circle/hashrexa/backend/internal/scripts"
 )
 
 func main() {
+	scripts.TestCall()
 	var port int
 	flag.IntVar(&port, "port", 8080, "Port to listen on")
 	flag.Parse()

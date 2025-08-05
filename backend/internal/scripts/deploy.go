@@ -34,11 +34,10 @@ func DeployPool() {
 	client.SetOperator(operatorId, operatorKey)
 	contractCreate := hiero.NewContractCreateFlow().
 	SetAdminKey(operatorKey.PublicKey()).
-	SetGas(1_000_000).
+	SetGas(10_000_000).
 	SetMaxAutomaticTokenAssociations(100).
 	SetBytecode(byteCode).
-	SetContractMemo("Hashrexa Lending Pool").
-	SetInitialBalance(hiero.HbarFrom(100, hiero.HbarUnits.Hbar))
+	SetContractMemo("Hashrexa Lending Pool")
 
 	txResponse, err := contractCreate.Execute(client)
 	if err != nil {

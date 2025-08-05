@@ -31,7 +31,7 @@ func ApproveAllowance() {
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
 
-	contractID, _ := hiero.ContractIDFromString("0.0.6499383") 
+	contractID, _ := hiero.ContractIDFromString("0.0.6500519") 
 	contractAccountID, _ := hiero.AccountIDFromString(contractID.String())
 	
 	transaction := hiero.NewAccountAllowanceApproveTransaction().ApproveTokenAllowance(tokenID, operatorId, contractAccountID, 5_000_000)

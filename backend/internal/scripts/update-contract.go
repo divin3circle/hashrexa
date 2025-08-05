@@ -30,7 +30,7 @@ func UpdateContract() {
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
 	
-	fileID, err := hiero.FileIDFromString("0.0.6499383")
+	fileID, err := hiero.FileIDFromString("0.0.6500519")
 	if err != nil {
 		fmt.Printf("Error getting file ID: %+v\n", err)
 		panic(err)

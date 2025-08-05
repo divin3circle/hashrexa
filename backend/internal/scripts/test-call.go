@@ -6,11 +6,10 @@ import (
 	"os"
 
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
-	"github.com/holiman/uint256"
 	"github.com/joho/godotenv"
 )
 
-var newContractID, _ = hiero.ContractIDFromString("0.0.6499383")
+var newContractID, _ = hiero.ContractIDFromString("0.0.6500519")
 
 func TestCall(){
 	err := godotenv.Load(".env")
@@ -31,22 +30,18 @@ func TestCall(){
 
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
-transaction := hiero.NewContractCallQuery().
-SetContractID(newContractID).
-SetGas(600_000).
-SetFunction("interestRate", nil)
+	transaction := hiero.NewContractCallQuery().
+	SetContractID(newContractID).
+	SetGas(600_000).
+	SetFunction("testPriceFeeds", nil)
 
 
-txResponse, err := transaction.Execute(client)
-if err != nil {
-panic(err)
-}
+	txResponse, err := transaction.Execute(client)
+	if err != nil {
+	panic(err)
+	}
 
-result := txResponse.ContractCallResult
-if len(result) == 32 {
-	var value uint256.Int
-	value.SetBytes(result)
-	fmt.Println("Interest Rate: \n", value.String())
-}
+	result := txResponse.ContractCallResult
+	fmt.Println("Result: \n", result)
 
 }

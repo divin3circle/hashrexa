@@ -1,0 +1,1 @@
+[{"inputs":[{"internalType":"uint256","name":"pairId","type":"uint256"}],"name":"getLatestPrice","outputs":[{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"stateMutability":"view","type":"function"}]
