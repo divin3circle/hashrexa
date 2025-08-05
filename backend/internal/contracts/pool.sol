@@ -21,6 +21,11 @@ contract LendingPool {
     int64 public ltv = 7000;              // 70% Loan-To-Value
     int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
 
+    // Fixed prices for calculations (in USD cents)
+    // TODO: Use Pricefeeds from Supra or Chainlink
+    int64 public constant dAAPL_PRICE = 20417; 
+    int64 public constant HASH_PRICE = 100;   
+
     // User positions
     struct Position {
         int64 suppliedHASH;
@@ -29,6 +34,23 @@ contract LendingPool {
         uint256 lastInterestBlock;
     }
     mapping(address => Position) public positions;
+
+    // Pool parameters struct
+    struct PoolParameters {
+        int64 ltv;
+        int64 interestRate;
+        int64 liquidationThreshold;
+    }
+
+    // Address details struct
+    struct AddressDetails {
+        int64 loanHealth;        // Percentage (0-10000, where 10000 = 100%)
+        int64 userPosition;      // Net position value in USD cents
+        int64 feesEarned;        // Fees earned from supplying HASH
+        int64 suppliedHASH;
+        int64 borrowedHASH;
+        int64 collateralDAAPL;
+    }
 
     // Events
     event DepositHASH(address indexed user, int64 amount);
@@ -47,7 +69,66 @@ contract LendingPool {
         owner = msg.sender;
     }
 
-    // Deposit HASH to pool
+    function getPoolBalances() external view returns (int64 dAAPLBalance, int64 hashBalance) {
+        IHTS hts = IHTS(HTS_PRECOMPILE);
+        dAAPLBalance = int64(uint64(hts.balanceOf(dAAPL, address(this))));
+        hashBalance = int64(uint64(hts.balanceOf(HASH, address(this))));
+    }
+
+    function getPoolParameters() external view returns (PoolParameters memory) {
+        return PoolParameters({
+            ltv: ltv,
+            interestRate: interestRate,
+            liquidationThreshold: liquidationThreshold
+        });
+    }
+
+    function getAddressDetails(address user) external view returns (AddressDetails memory) {
+        Position memory pos = positions[user];
+        
+
+        int64 collateralValue = (pos.collateralDAAPL * dAAPL_PRICE) / 100; // dAAPL has 2 decimals
+        int64 borrowedValue = (pos.borrowedHASH * HASH_PRICE) / 1_000_000; // HASH has 6 decimals   
+        
+        int64 loanHealth = 10000; 
+        if (borrowedValue > 0 && collateralValue > 0) {
+            int64 healthRatio = (collateralValue * liquidationThreshold) / (borrowedValue * 10000);
+            loanHealth = healthRatio;
+            if (loanHealth > 10000) loanHealth = 10000; 
+            if (loanHealth < 0) loanHealth = 0;
+        }
+        
+        int64 userPosition = collateralValue - borrowedValue;
+
+        int64 feesEarned = 0;
+        if (pos.suppliedHASH > 0) {
+            int64 blocksElapsed = int64(uint64(block.number - pos.lastInterestBlock));
+            if (blocksElapsed > 0) {
+                feesEarned = (pos.suppliedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
+            }
+        }
+        
+        return AddressDetails({
+            loanHealth: loanHealth,
+            userPosition: userPosition,
+            feesEarned: feesEarned,
+            suppliedHASH: pos.suppliedHASH,
+            borrowedHASH: pos.borrowedHASH,
+            collateralDAAPL: pos.collateralDAAPL
+        });
+    }
+
+    function getPoolAndUserData(address user) external view returns (
+        int64 dAAPLBalance,
+        int64 hashBalance,
+        PoolParameters memory poolParams,
+        AddressDetails memory userDetails
+    ) {
+        (dAAPLBalance, hashBalance) = this.getPoolBalances();
+        poolParams = this.getPoolParameters();
+        userDetails = this.getAddressDetails(user);
+    }
+
     function depositHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(HASH, msg.sender, address(this), amount), "HASH transfer failed");
@@ -55,7 +136,6 @@ contract LendingPool {
         emit DepositHASH(msg.sender, amount);
     }
 
-    // Withdraw supplied HASH
     function withdrawHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].suppliedHASH >= amount, "Insufficient supply");
@@ -64,7 +144,6 @@ contract LendingPool {
         emit WithdrawHASH(msg.sender, amount);
     }
 
-    // Deposit dAAPL as collateral
     function depositCollateral(int64 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(dAAPL, msg.sender, address(this), amount), "dAAPL transfer failed");
@@ -72,7 +151,6 @@ contract LendingPool {
         emit DepositCollateral(msg.sender, amount);
     }
 
-    // Borrow HASH against dAAPL collateral
     function borrowHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         int64 maxBorrow = (positions[msg.sender].collateralDAAPL * int64(ltv)) / 10000;
@@ -83,7 +161,6 @@ contract LendingPool {
         emit BorrowHASH(msg.sender, amount);
     }
 
-    // Repay borrowed HASH
     function repayHASH(int64 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].borrowedHASH >= amount, "Too much repayment");
@@ -122,7 +199,6 @@ contract LendingPool {
         emit Liquidate(user, repayAmt, collateralSeized);
     }
 
-    // Owner can adjust config
     function setInterestRate(int64 rate) external onlyOwner {
         interestRate = rate;
     }

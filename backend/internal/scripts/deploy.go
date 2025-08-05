@@ -37,7 +37,9 @@ func DeployPool() {
 	SetGas(1_000_000).
 	SetMaxAutomaticTokenAssociations(100).
 	SetBytecode(byteCode).
-	SetContractMemo("Hashrexa Lending Pool")
+	SetContractMemo("Hashrexa Lending Pool").
+	SetInitialBalance(hiero.HbarFrom(100, hiero.HbarUnits.Hbar))
+
 	txResponse, err := contractCreate.Execute(client)
 	if err != nil {
 		panic(err)
