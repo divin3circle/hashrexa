@@ -22,9 +22,9 @@ contract LendingPool {
     address public constant HASH  = 0x0000000000000000000000000000000000631766;
     address public owner;
 
-    int64 public interestRate = 500;      // 5% annual
-    int64 public ltv = 7000;              // 70% Loan-To-Value
-    int64 public liquidationThreshold = 8000; // 80% Liquidation threshold
+    uint256 public interestRate = 500;      // 5% annual
+    uint256 public ltv = 7000;              // 70% Loan-To-Value
+    uint256 public liquidationThreshold = 8000; // 80% Liquidation threshold
 
     // Supra Oracle address for Hedera testnet
     address public supraOracleAddress = 0x6bf7b21145Cbd7BB0b9916E6eB24EDA8A675D7C0;
@@ -35,42 +35,42 @@ contract LendingPool {
     uint256 public constant USDC_USDT_PAIR_ID = 47;  // USDC_USDT from Supra
     
     // Fallback prices (in USD cents) - used if oracle fails
-    int64 public constant FALLBACK_AAPL_PRICE = 20417; 
-    int64 public constant FALLBACK_HASH_PRICE = 100;   
+    uint256 public constant FALLBACK_AAPL_PRICE = 20417; 
+    uint256 public constant FALLBACK_HASH_PRICE = 100;   
 
     // User positions
     struct Position {
-        int64 suppliedHASH;
-        int64 borrowedHASH;
-        int64 collateralDAAPL;
+        uint256 suppliedHASH;
+        uint256 borrowedHASH;
+        uint256 collateralDAAPL;
         uint256 lastInterestBlock;
     }
     mapping(address => Position) public positions;
 
     // Pool parameters struct
     struct PoolParameters {
-        int64 ltv;
-        int64 interestRate;
-        int64 liquidationThreshold;
+        uint256 ltv;
+        uint256 interestRate;
+        uint256 liquidationThreshold;
     }
 
     // Address details struct
     struct AddressDetails {
-        int64 loanHealth;        // Percentage (0-10000, where 10000 = 100%)
-        int64 userPosition;      // Net position value in USD cents
-        int64 feesEarned;        // Fees earned from supplying HASH
-        int64 suppliedHASH;
-        int64 borrowedHASH;
-        int64 collateralDAAPL;
+        uint256 loanHealth;        // Percentage (0-10000, where 10000 = 100%)
+        uint256 userPosition;      // Net position value in USD cents
+        uint256 feesEarned;        // Fees earned from supplying HASH
+        uint256 suppliedHASH;
+        uint256 borrowedHASH;
+        uint256 collateralDAAPL;
     }
 
     // Events
-    event DepositHASH(address indexed user, int64 amount);
-    event WithdrawHASH(address indexed user, int64 amount);
-    event DepositCollateral(address indexed user, int64 amount);
-    event BorrowHASH(address indexed user, int64 amount);
-    event RepayHASH(address indexed user, int64 amount);
-    event Liquidate(address indexed user, int64 repaid, int64 collateralSeized);
+    event DepositHASH(address indexed user, uint256 amount);
+    event WithdrawHASH(address indexed user, uint256 amount);
+    event DepositCollateral(address indexed user, uint256 amount);
+    event BorrowHASH(address indexed user, uint256 amount);
+    event RepayHASH(address indexed user, uint256 amount);
+    event Liquidate(address indexed user, uint256 repaid, uint256 collateralSeized);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
@@ -81,47 +81,47 @@ contract LendingPool {
         owner = msg.sender;
     }
 
-    function getAAPLPrice() public view returns (int64) {
+    function getAAPLPrice() public view returns (uint256) {
         if (supraOracleAddress == address(0)) {
             return FALLBACK_AAPL_PRICE;
         }
         
         try ISupraOracle(supraOracleAddress).getLatestPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256) {
             // Convert price to cents (assuming 8 decimals from oracle)
-            return int64(uint64(price / 1e6)); // Convert to cents
+            return price / 1e6; // Convert to cents
         } catch {
             
             return FALLBACK_AAPL_PRICE;
         }
     }
 
-    function getHASHPrice() public view returns (int64) {
+    function getHASHPrice() public view returns (uint256) {
         if (supraOracleAddress == address(0)) {
             return FALLBACK_HASH_PRICE;
         }
         
         try ISupraOracle(supraOracleAddress).getLatestPrice(USDC_USDT_PAIR_ID) returns (uint256 price, uint256) {
             // Convert price to cents (assuming 8 decimals from oracle)
-            return int64(uint64(price / 1e6)); // Convert to cents
+            return price / 1e6; // Convert to cents
         } catch {
             return FALLBACK_HASH_PRICE;
         }
     }
 
     // Calculate accrued interest for a user
-    function accruedInterest(address user) public view returns (int64) {
+    function accruedInterest(address user) public view returns (uint256) {
         Position memory pos = positions[user];
-        int64 blocksElapsed = int64(uint64(block.number - pos.lastInterestBlock));
+        uint256 blocksElapsed = block.number - pos.lastInterestBlock;
         if (pos.borrowedHASH == 0 || blocksElapsed <= 0) return 0;
         // 2102400 blocks/year (approx Hedera block rate)
-        int64 interest = (pos.borrowedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
+        uint256 interest = (pos.borrowedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
         return interest;
     }
 
-    function getPoolBalances() external view returns (int64 dAAPLBalance, int64 hashBalance) {
+    function getPoolBalances() external view returns (uint256 dAAPLBalance, uint256 hashBalance) {
         IHTS hts = IHTS(HTS_PRECOMPILE);
-        dAAPLBalance = int64(uint64(hts.balanceOf(dAAPL, address(this))));
-        hashBalance = int64(uint64(hts.balanceOf(HASH, address(this))));
+        dAAPLBalance = hts.balanceOf(dAAPL, address(this));
+        hashBalance = hts.balanceOf(HASH, address(this));
     }
 
     function getPoolParameters() external view returns (PoolParameters memory) {
@@ -136,31 +136,29 @@ contract LendingPool {
         Position memory pos = positions[user];
         
         // Get real-time prices from Supra Oracle
-        int64 currentAAPLPrice = getAAPLPrice();
-        int64 currentHASHPrice = getHASHPrice();
+        uint256 currentAAPLPrice = getAAPLPrice();
+        uint256 currentHASHPrice = getHASHPrice();
         
         // Calculate values in USD cents using real-time prices
-        int64 collateralValue = (pos.collateralDAAPL * currentAAPLPrice) / 100; // dAAPL has 2 decimals
-        // int64 borrowedValue = (pos.borrowedHASH * currentHBARPrice) / 1_000_000; // HASH has 6 decimals
+        uint256 collateralValue = (pos.collateralDAAPL * currentAAPLPrice) / 100; // dAAPL has 2 decimals
         
         // Include accrued interest in borrowed amount
-        int64 totalBorrowed = pos.borrowedHASH + accruedInterest(user);
-        int64 totalBorrowedValue = (totalBorrowed * currentHASHPrice) / 1_000_000;
+        uint256 totalBorrowed = pos.borrowedHASH + accruedInterest(user);
+        uint256 totalBorrowedValue = (totalBorrowed * currentHASHPrice) / 1_000_000;
         
         // Calculate loan health with real-time prices and accrued interest
-        int64 loanHealth = 10000; 
+        uint256 loanHealth = 10000; 
         if (totalBorrowedValue > 0 && collateralValue > 0) {
-            int64 healthRatio = (collateralValue * liquidationThreshold) / (totalBorrowedValue * 10000);
+            uint256 healthRatio = (collateralValue * liquidationThreshold) / (totalBorrowedValue * 10000);
             loanHealth = healthRatio;
             if (loanHealth > 10000) loanHealth = 10000; 
-            if (loanHealth < 0) loanHealth = 0;
         }
         
-        int64 userPosition = collateralValue - totalBorrowedValue;
+        uint256 userPosition = collateralValue > totalBorrowedValue ? collateralValue - totalBorrowedValue : 0;
 
-        int64 feesEarned = 0;
+        uint256 feesEarned = 0;
         if (pos.suppliedHASH > 0) {
-            int64 blocksElapsed = int64(uint64(block.number - pos.lastInterestBlock));
+            uint256 blocksElapsed = block.number - pos.lastInterestBlock;
             if (blocksElapsed > 0) {
                 feesEarned = (pos.suppliedHASH * interestRate * blocksElapsed) / (2102400 * 10000);
             }
@@ -177,8 +175,8 @@ contract LendingPool {
     }
 
     function getPoolAndUserData(address user) external view returns (
-        int64 dAAPLBalance,
-        int64 hashBalance,
+        uint256 dAAPLBalance,
+        uint256 hashBalance,
         PoolParameters memory poolParams,
         AddressDetails memory userDetails
     ) {
@@ -187,14 +185,14 @@ contract LendingPool {
         userDetails = this.getAddressDetails(user);
     }
 
-    function depositHASH(int64 amount) external {
+    function depositHASH(uint256 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(HASH, msg.sender, address(this), amount), "HASH transfer failed");
         positions[msg.sender].suppliedHASH += amount;
         emit DepositHASH(msg.sender, amount);
     }
 
-    function withdrawHASH(int64 amount) external {
+    function withdrawHASH(uint256 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].suppliedHASH >= amount, "Insufficient supply");
         positions[msg.sender].suppliedHASH -= amount;
@@ -202,16 +200,16 @@ contract LendingPool {
         emit WithdrawHASH(msg.sender, amount);
     }
 
-    function depositCollateral(int64 amount) external {
+    function depositCollateral(uint256 amount) external {
         require(amount > 0, "Amount required");
         require(_htsTransfer(dAAPL, msg.sender, address(this), amount), "dAAPL transfer failed");
         positions[msg.sender].collateralDAAPL += amount;
         emit DepositCollateral(msg.sender, amount);
     }
 
-    function borrowHASH(int64 amount) external {
+    function borrowHASH(uint256 amount) external {
         require(amount > 0, "Amount required");
-        int64 maxBorrow = (positions[msg.sender].collateralDAAPL * int64(ltv)) / 10000;
+        uint256 maxBorrow = (positions[msg.sender].collateralDAAPL * ltv) / 10000;
         require(positions[msg.sender].borrowedHASH + amount <= maxBorrow, "Exceeds LTV");
         require(_htsTransfer(HASH, address(this), msg.sender, amount), "HASH borrow transfer failed");
         positions[msg.sender].borrowedHASH += amount;
@@ -219,7 +217,7 @@ contract LendingPool {
         emit BorrowHASH(msg.sender, amount);
     }
 
-    function repayHASH(int64 amount) external {
+    function repayHASH(uint256 amount) external {
         require(amount > 0, "Amount required");
         require(positions[msg.sender].borrowedHASH >= amount, "Too much repayment");
         require(_htsTransfer(HASH, msg.sender, address(this), amount), "HASH repay transfer failed");
@@ -230,11 +228,11 @@ contract LendingPool {
     
     function liquidate(address user) external onlyOwner {
         Position storage pos = positions[user];
-        int64 maxDebt = (pos.collateralDAAPL * liquidationThreshold) / 10000;
+        uint256 maxDebt = (pos.collateralDAAPL * liquidationThreshold) / 10000;
         require(pos.borrowedHASH > maxDebt, "Healthy position");
 
-        int64 repayAmt = pos.borrowedHASH;
-        int64 collateralSeized = pos.collateralDAAPL;
+        uint256 repayAmt = pos.borrowedHASH;
+        uint256 collateralSeized = pos.collateralDAAPL;
 
         require(_htsTransfer(HASH, address(this), owner, repayAmt), "HASH transfer failed");
         require(_htsTransfer(dAAPL, address(this), owner, collateralSeized), "dAAPL transfer failed");
@@ -245,13 +243,13 @@ contract LendingPool {
         emit Liquidate(user, repayAmt, collateralSeized);
     }
 
-    function setInterestRate(int64 rate) external onlyOwner {
+    function setInterestRate(uint256 rate) external onlyOwner {
         interestRate = rate;
     }
-    function setLTV(int64 newLTV) external onlyOwner {
+    function setLTV(uint256 newLTV) external onlyOwner {
         ltv = newLTV;
     }
-    function setLiquidationThreshold(int64 newThresh) external onlyOwner {
+    function setLiquidationThreshold(uint256 newThresh) external onlyOwner {
         liquidationThreshold = newThresh;
     }
 
@@ -260,8 +258,8 @@ contract LendingPool {
     }
 
     function testPriceFeeds() external view returns (
-        int64 aaplPrice,
-        int64 usdcPrice,
+        uint256 aaplPrice,
+        uint256 usdcPrice,
         bool aaplOracleWorking,
         bool usdcOracleWorking,
         uint256 aaplTimestamp,
@@ -273,7 +271,7 @@ contract LendingPool {
             aaplTimestamp = 0;
         } else {
             try ISupraOracle(supraOracleAddress).getLatestPrice(AAPL_USD_PAIR_ID) returns (uint256 price, uint256) {
-                aaplPrice = int64(uint64(price / 1e6));
+                aaplPrice = price / 1e6;
                 aaplOracleWorking = true;
                 aaplTimestamp = block.timestamp;
             } catch {
@@ -289,7 +287,7 @@ contract LendingPool {
             usdcTimestamp = 0;
         } else {
             try ISupraOracle(supraOracleAddress).getLatestPrice(USDC_USDT_PAIR_ID) returns (uint256 price, uint256) {
-                usdcPrice = int64(uint64(price / 1e6));
+                usdcPrice = price / 1e6;
                 usdcOracleWorking = true;
                 usdcTimestamp = block.timestamp;
             } catch {
@@ -300,9 +298,9 @@ contract LendingPool {
         }
     }
 
-    function _htsTransfer(address token, address from, address to, int64 amount) internal returns (bool) {
+    function _htsTransfer(address token, address from, address to, uint256 amount) internal returns (bool) {
         (bool success, bytes memory result) = HTS_PRECOMPILE.call(
-            abi.encodeWithSignature("transferToken(address,address,address,int64)", token, from, to, amount)
+            abi.encodeWithSignature("transferToken(address,address,address,uint256)", token, from, to, amount)
         );
         if (!success) return false;
         int64 responseCode = abi.decode(result, (int64));

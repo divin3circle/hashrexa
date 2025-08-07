@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	scripts.TestCall()
+	scripts.Transfer()
 	var port int
 	flag.IntVar(&port, "port", 8080, "Port to listen on")
 	flag.Parse()
@@ -29,10 +29,10 @@ func main() {
 
 	r := routes.SetUpRoutes(app)
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%d", port),
-		Handler: r,
-		IdleTimeout: time.Minute,
-		ReadTimeout: 10 * time.Second,
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      r,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 40 * time.Second,
 	}
 

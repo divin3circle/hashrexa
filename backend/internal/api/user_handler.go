@@ -18,83 +18,20 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type LoanStatus struct {
-	CollateralToken string `json:"collateral_token"`
-	CollateralAmount float64 `json:"collateral_amount"`
-	BorrowedToken string `json:"borrowed_token"`
-	BorrowedAmount float64 `json:"borrowed_amount"`
-	APY float64 `json:"apy"`
-}
 
-type StockToken struct {
-	StockSymbol string `json:"stockSymbol"`
-	StockPrice float64 `json:"stockPrice"`
-	StockChange float64 `json:"stockChange"`
-	UnrealizedPL float64 `json:"unrealizedPL"`
-	StockLogo string `json:"stockLogo"`
-	TokenizedAmount float64 `json:"tokenizedAmount"`
-}
-
-type PoolPosition struct {
-	SuppliedHASH      int64 `json:"suppliedHASH"`
-	BorrowedHASH      int64 `json:"borrowedHASH"`
-	CollateralDAAPL   int64 `json:"collateralDAAPL"`
-	LastInterestBlock uint64 `json:"lastInterestBlock"`
-}
-
-type Address struct {
-	Position PoolPosition `json:"position"`
-	LoanHealth float64 `json:"loanHealth"`
-	FeesEarned int64 `json:"feesEarned"`
-}
-
-type Pool struct {
-	ContractId string `json:"contractId"`
-	Ltv int64 `json:"ltv"`
-	InterestRate int64 `json:"interestRate"`
-}
-
-type TopicMessagesMNAPIResponse struct {
-	Messages []struct {
-		SequenceNumber int64  `json:"sequence_number"`
-		Message        string `json:"message"`
-	} `json:"messages"`
-}
-
-type User struct {
-	UserAccountId string `json:"userAccountId"`
-	TopicId string `json:"topicId"`
-	CreatedAt string `json:"createdAt"`
-	ProfilePicture string `json:"profilePicture"`
-	LoanStatus []LoanStatus `json:"loanStatus"`
-	TokenizedAssets []StockToken `json:"tokenizedAssets"`
-	UpdatedAt string `json:"updatedAt"`
-}
-
-type Portfolio struct {
-	PortfolioValueUSD float64 `json:"portfolioValueUSD"`
-	TokenizedAssets int `json:"tokenizedAssets"`
-	OptionsAssets int `json:"optionsAssets"`
-}
-
-type UserHandler struct {
-	DB *badger.DB
-	Client *hiero.Client
-		Alpaca *alpaca.Client
-	}
 
 func NewUserHandler(db *badger.DB, client *hiero.Client, alpacaClient *alpaca.Client) *UserHandler {
 	return &UserHandler{DB: db, Client: client, Alpaca: alpacaClient}
 }
 
 const (
-	ALLOWED_TOKENIZED_ASSETS = "AAPL"
-	ALLOWED_TOKENIZED_ASSET_ID = "0.0.6476439"
+	AllowedTokenizedAssets  = "AAPL"
+	AllowedTokenizedAssetId = "0.0.6509511"
 )
 
 func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request) {
-	MY_PRIVATE_KEY := os.Getenv("MY_PRIVATE_KEY")
-	privateKey, err := hiero.PrivateKeyFromStringEd25519(MY_PRIVATE_KEY)
+	MyPrivateKey := os.Getenv("MY_PRIVATE_KEY")
+	privateKey, err := hiero.PrivateKeyFromStringEd25519(MyPrivateKey)
 	if err != nil {
 		http.Error(w, "Failed to parse private key", http.StatusInternalServerError)
 		return
@@ -102,6 +39,7 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 	// get user account id and topic id from params
 	userAccountId := chi.URLParam(r, "userAccountId")
 	topicId := chi.URLParam(r, "topicId")
+
 
 	if userAccountId == "" || topicId == "" {
 		http.Error(w, "Missing user account ID or topic ID", http.StatusBadRequest)
@@ -117,16 +55,25 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user := User{
-		UserAccountId: userAccountId,
-		TopicId: topicId,
-		CreatedAt: time.Now().Format(time.RFC3339),
-		ProfilePicture: "",
-		LoanStatus: []LoanStatus{},
-		TokenizedAssets: []StockToken{},
-		UpdatedAt: time.Now().Format(time.RFC3339),
+	var personalInformation UserPersonalInformation
+
+	err = json.NewDecoder(r.Body).Decode(&personalInformation)
+	if err != nil {
+		http.Error(w, "Failed to decode personal information", http.StatusInternalServerError)
+		return
 	}
-	
+
+	user := User{
+		UserAccountId:   userAccountId,
+		TopicId:         topicId,
+		CreatedAt:       time.Now().Format(time.RFC3339),
+		ProfilePicture:  "",
+		PersonalInformation: personalInformation,
+		LoanStatus:      []LoanStatus{},
+		TokenizedAssets: []StockToken{},
+		UpdatedAt:       time.Now().Format(time.RFC3339),
+	}
+
 	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
 		http.Error(w, "Failed to convert topic ID to Hedera topic ID", http.StatusInternalServerError)
@@ -137,11 +84,11 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Failed to marshal user data", http.StatusInternalServerError)
 		return
 	}
-	
+
 	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
 		SetTransactionMemo("User registered").
 		SetTopicID(topicID).
-		SetMessage(marshaledUser). 
+		SetMessage(marshaledUser).
 		FreezeWith(u.Client)
 
 	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
@@ -153,11 +100,11 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 	topicMsgSeqNum := topicMsgSubmitTxReceipt.TopicSequenceNumber
 	fmt.Printf("Topic Message Sequence Number: %v\n", topicMsgSeqNum)
 
-	u.Client.Close()
-	
+	_ = u.Client.Close()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"success": true, "message": "User registered successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
+	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User registered successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
 }
 
 func (u *UserHandler) HandleCheckTopicExists(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +127,7 @@ func (u *UserHandler) HandleCheckTopicExists(w http.ResponseWriter, r *http.Requ
 	})
 
 	if err != nil {
-		if err == badger.ErrKeyNotFound {
+		if errors.Is(err, badger.ErrKeyNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -190,7 +137,7 @@ func (u *UserHandler) HandleCheckTopicExists(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"exists": true, "topicId": "%s"}`, string(topicId))
+	_, _ = fmt.Fprintf(w, `{"exists": true, "topicId": "%s"}`, string(topicId))
 }
 
 func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Request) {
@@ -207,9 +154,9 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 	}
 	fmt.Println("Positions found✅")
 	// find allowed tokenized assets in positions
-	allowedTokenizedAssets := []string{}
+	var allowedTokenizedAssets []string
 	for _, position := range positions {
-		if position.Symbol == ALLOWED_TOKENIZED_ASSETS {
+		if position.Symbol == AllowedTokenizedAssets {
 			allowedTokenizedAssets = append(allowedTokenizedAssets, position.Symbol)
 		}
 	}
@@ -237,7 +184,7 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"success": true, "message": "Tokenized assets minted successfully"}`)
+	_, _ = fmt.Fprintf(w, `{"success": true, "message": "Tokenized assets minted successfully"}`)
 }
 
 func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +207,7 @@ func (u *UserHandler) HandleGetUserTokenizedAssets(w http.ResponseWriter, r *htt
 		http.Error(w, "Failed to get topic ID", http.StatusInternalServerError)
 		return
 	}
-	tokenizedAssets, err := u.getUserTokenizedAssets( string(topicId))
+	tokenizedAssets, err := u.getUserTokenizedAssets(string(topicId))
 	if err != nil {
 		http.Error(w, "Failed to get user tokenized assets", http.StatusInternalServerError)
 		return
@@ -351,13 +298,13 @@ func (u *UserHandler) HandleGetStockLogo(w http.ResponseWriter, r *http.Request)
 }
 
 func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Request) {
-	req := alpaca.GetPortfolioHistoryRequest{
-		Period: "30D",
-		TimeFrame: alpaca.TimeFrame("1H"),
-		DateEnd: time.Now(),
+	historyRequest := alpaca.GetPortfolioHistoryRequest{
+		Period:        "30D",
+		TimeFrame:     alpaca.TimeFrame("1H"),
+		DateEnd:       time.Now(),
 		ExtendedHours: false,
 	}
-	history, err := u.Alpaca.GetPortfolioHistory(req)
+	history, err := u.Alpaca.GetPortfolioHistory(historyRequest)
 	if err != nil {
 		fmt.Println("Error getting portfolio history: ", err)
 		http.Error(w, "Failed to get portfolio history", http.StatusInternalServerError)
@@ -374,13 +321,46 @@ func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (u *UserHandler) HandleGetUserPersonalInformation(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	topicId, err := u.getUserTopicId(userAccountId)
+	if err != nil {
+		http.Error(w, "Failed to get user topic ID", http.StatusInternalServerError)
+		return
+	}
+	userData, err := u.getLatestMessageFromTopic(topicId)
+	if err != nil {
+		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		return
+	}
+	var user User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+		return
+	}
+	personalInformation := user.PersonalInformation
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]UserPersonalInformation{
+		"personalInformation": personalInformation,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode personal information", http.StatusInternalServerError)
+		return
+	}
+}
 
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
 		return "", err
 	}
-	
+
 	query := hiero.NewTopicInfoQuery().
 		SetTopicID(topicID)
 
@@ -405,10 +385,10 @@ func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) 
 	}
 	err = json.Unmarshal(httpResp.Bytes(), &response)
 	if err != nil {
-    return "", err
+		return "", err
 	}
 	if len(response.Messages) == 0 {
-    return "", errors.New("no messages found")
+		return "", errors.New("no messages found")
 	}
 	messageContent := response.Messages[0].Message
 
@@ -426,17 +406,34 @@ func getStockLogo(stockSymbol string) (string, error) {
 	return "https://substackcdn.com/image/fetch/$s_!G1lk!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8ed3d547-94ff-48e1-9f20-8c14a7030a02_2000x2000.jpeg", nil
 }
 
-func getContractId(contractId string) (hiero.ContractID, error) {
-	contractID, err := hiero.ContractIDFromString(contractId)
+func (u *UserHandler) getUserTopicId(userAccountId string) (string, error) {
+	var topicId []byte
+	err := u.DB.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(userAccountId))
+		if err != nil {
+			return err
+		}
+		topicId, err = item.ValueCopy(nil)
+		return err
+	})
 	if err != nil {
-		return hiero.ContractID{}, err
+		fmt.Println("Error getting user topic ID: ", err)
+		return "", err
 	}
-
-	return contractID, nil
+	return string(topicId), nil
 }
 
+//func getContractId(contractId string) (hiero.ContractID, error) {
+//	contractID, err := hiero.ContractIDFromString(contractId)
+//	if err != nil {
+//		return hiero.ContractID{}, err
+//	}
+//
+//	return contractID, nil
+//}
+
 func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, error) {
-	userData, err := u.getLatestMessageFromTopic(string(topicId))
+	userData, err := u.getLatestMessageFromTopic(topicId)
 	fmt.Println("User data: ", userData)
 	if err != nil {
 		fmt.Println("Error getting user data from topic: ", err)
@@ -444,7 +441,7 @@ func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, erro
 	}
 
 	var user User
-	err = json.Unmarshal([]byte(userData), &user) 
+	err = json.Unmarshal([]byte(userData), &user)
 	if err != nil {
 		fmt.Println("Error unmarshalling user data: ", err)
 		return nil, err
@@ -452,8 +449,6 @@ func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, erro
 	tokenizedAssets := user.TokenizedAssets
 	return tokenizedAssets, nil
 }
-
-
 
 func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenizedAsset string, amountToMint float64) (bool, error) {
 	mintSuccess, err := u.mint(amountToMint)
@@ -478,7 +473,7 @@ func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenize
 }
 
 func (u *UserHandler) mint(amountToMint float64) (bool, error) {
-	tokenId, err := hiero.TokenIDFromString(ALLOWED_TOKENIZED_ASSET_ID)
+	tokenId, err := hiero.TokenIDFromString(AllowedTokenizedAssetId)
 	if err != nil {
 		log.Fatalf("Failed to convert token ID to Hedera token ID: %v", err)
 		return false, err
@@ -494,30 +489,30 @@ func (u *UserHandler) mint(amountToMint float64) (bool, error) {
 		SetMaxTransactionFee(hiero.HbarFrom(20, hiero.HbarUnits.Hbar)).
 		FreezeWith(u.Client)
 
-		if err != nil {
-			fmt.Println("Error freezing transaction: ", err)
-			return false, err
+	if err != nil {
+		fmt.Println("Error freezing transaction: ", err)
+		return false, err
 	}
 
 	txResponse, err := transaction.
-			Sign(supplyKey).
-			Execute(u.Client)
-	
+		Sign(supplyKey).
+		Execute(u.Client)
+
 	if err != nil {
 		fmt.Println("Error executing transaction: ", err)
 		return false, err
 	}
-	
+
 	receipt, err := txResponse.GetReceipt(u.Client)
-	
+
 	if err != nil {
 		fmt.Println("Error getting receipt: ", err)
 		return false, err
 	}
 	fmt.Println("Txn Receipt: ", receipt)
-	
+
 	status := receipt.Status
-	
+
 	fmt.Printf("The transaction consensus status is %v\n", status)
 
 	return true, nil
@@ -574,25 +569,25 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, asset string, a
 	tokenizedAssets := user.TokenizedAssets
 	if len(tokenizedAssets) == 0 {
 		tokenizedAssets = append(tokenizedAssets, StockToken{
-			StockSymbol: asset,
-			StockPrice: position.CurrentPrice.InexactFloat64(),
-			StockChange: position.ChangeToday.InexactFloat64(),
-			UnrealizedPL: position.UnrealizedPL.InexactFloat64(),
-			StockLogo: logo,
+			StockSymbol:     asset,
+			StockPrice:      position.CurrentPrice.InexactFloat64(),
+			StockChange:     position.ChangeToday.InexactFloat64(),
+			UnrealizedPL:    position.UnrealizedPL.InexactFloat64(),
+			StockLogo:       logo,
 			TokenizedAmount: amountMinted,
 		})
 		// update the user's tokenized assets field with the new tokenized asset
 		user.TokenizedAssets = tokenizedAssets
 	} else {
-	for _, tokenizedAsset := range tokenizedAssets {
-		if tokenizedAsset.StockSymbol == asset {
-			tokenizedAsset.TokenizedAmount += amountMinted
-			// update the user's tokenized assets field with the new tokenized asset
-			user.TokenizedAssets = tokenizedAssets
-			break
+		for _, tokenizedAsset := range tokenizedAssets {
+			if tokenizedAsset.StockSymbol == asset {
+				tokenizedAsset.TokenizedAmount += amountMinted
+				// update the user's tokenized assets field with the new tokenized asset
+				user.TokenizedAssets = tokenizedAssets
+				break
+			}
 		}
 	}
-}
 
 	// marshal the user struct back to json and submit it to the topic
 	marshaledUser, err := json.Marshal(user)
@@ -603,7 +598,7 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, asset string, a
 	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
 		SetTransactionMemo("Tokenized asset minted").
 		SetTopicID(topicID).
-		SetMessage(marshaledUser). 
+		SetMessage(marshaledUser).
 		FreezeWith(u.Client)
 
 	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
@@ -614,7 +609,55 @@ func (u *UserHandler) recordTokenizedAsset(userAccountId string, asset string, a
 	fmt.Printf("The topic message submit transaction receipt: %v\n", topicMsgSubmitTxReceipt)
 
 	return true, nil
-	
+
+}
+
+func (u *UserHandler) transfer(userAccountId string, amountMinted int64) (bool, error) {
+	tokenId, err := hiero.TokenIDFromString("0.0.6509511")
+	if err != nil {
+		fmt.Println("Error converting token id: ", err)
+		return false, err
+	}
+	operatorKey, _ := hiero.PrivateKeyFromStringEd25519(os.Getenv("MY_PRIVATE_KEY"))
+
+	accountId0, err := hiero.AccountIDFromString(os.Getenv("MY_ACCOUNT_ID"))
+	if err != nil {
+		fmt.Println("Error converting account id: ", err)
+		return false, err
+	}
+	accountId1, err := hiero.AccountIDFromString(userAccountId)
+	if err != nil {
+		fmt.Println("Error converting account id: ", err)
+		return false, err
+	}
+
+	transaction, err := hiero.NewTransferTransaction().
+		AddTokenTransfer(tokenId, accountId0, -amountMinted).
+		AddTokenTransfer(tokenId, accountId1, amountMinted).
+		FreezeWith(u.Client)
+
+	if err != nil {
+		fmt.Println("Error creating txn: ", err)
+		return false, err
+	}
+
+	txResponse, err := transaction.Sign(operatorKey).Execute(u.Client)
+
+	if err != nil {
+		fmt.Println("Error sign txn: ", err)
+		return false, err
+	}
+
+	receipt, err := txResponse.GetReceipt(u.Client)
+	if err != nil {
+		fmt.Println("Error get txn receipt: ", err)
+		return false, err
+	}
+
+	status := receipt.Status
+
+	fmt.Printf("The transaction consensus status is %v\n", status)
+	return true, nil
 }
 
 func (u *UserHandler) getUserPortfolio(topicId string) (Portfolio, error) {
@@ -633,8 +676,8 @@ func (u *UserHandler) getUserPortfolio(topicId string) (Portfolio, error) {
 	}
 	return Portfolio{
 		PortfolioValueUSD: portfolioValueUSD,
-		OptionsAssets: len(positions),
-		TokenizedAssets: len(tokenizedAssets), 
+		OptionsAssets:     len(positions),
+		TokenizedAssets:   len(tokenizedAssets),
 	}, nil
 }
 

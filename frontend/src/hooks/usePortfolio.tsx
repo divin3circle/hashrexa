@@ -30,7 +30,7 @@ export const useWalletTokens = () => {
 export function useTokenizePortfolio() {
   const { address } = useAppKitAccount();
   const { associate, isPending: isAssociatePending } =
-    useAssociate("0.0.6476439");
+    useAssociate("0.0.6509511");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { mutate, isPending, error, data } = useMutation({

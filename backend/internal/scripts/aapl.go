@@ -43,9 +43,15 @@ func createToken() {
 	client := hiero.ClientForTestnet()
 	client.SetOperator(operatorId, operatorKey)
 
-	client.SetDefaultMaxTransactionFee(hiero.HbarFrom(100, hiero.HbarUnits.Hbar))
+	err = client.SetDefaultMaxTransactionFee(hiero.HbarFrom(100, hiero.HbarUnits.Hbar))
+	if err != nil {
+		return
+	}
 
-	client.SetDefaultMaxQueryPayment(hiero.HbarFrom(50, hiero.HbarUnits.Hbar))
+	err = client.SetDefaultMaxQueryPayment(hiero.HbarFrom(50, hiero.HbarUnits.Hbar))
+	if err != nil {
+		return
+	}
 
 	fmt.Println("🟣 Creating new HTS token")
 	tokenCreateTx, _ := hiero.NewTokenCreateTransaction().
@@ -57,7 +63,6 @@ func createToken() {
 		SetInitialSupply(0).
 		SetTreasuryAccountID(operatorId).
 		SetAdminKey(operatorKey.PublicKey()).
-		SetKycKey(operatorKey.PublicKey()).
 		SetWipeKey(operatorKey.PublicKey()).
 		SetPauseKey(operatorKey.PublicKey()).
 		SetFreezeKey(operatorKey.PublicKey()).
@@ -69,7 +74,6 @@ func createToken() {
 
 	tokenCreateTxSigned := tokenCreateTx.Sign(operatorKey)
 
-	
 	tokenCreateTxSubmitted, _ := tokenCreateTxSigned.Execute(client)
 
 	tokenCreateTxReceipt, _ := tokenCreateTxSubmitted.GetReceipt(client)
@@ -106,4 +110,3 @@ func createToken() {
 	fmt.Printf("The total supply of this token: %s\n", tokenTotalSupply)
 	fmt.Println("🎉 Apple Inc - dAAPL Fungible Token - complete")
 }
-

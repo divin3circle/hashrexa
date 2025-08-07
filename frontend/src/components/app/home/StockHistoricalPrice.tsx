@@ -94,7 +94,7 @@ export function StockHistoricalPrice() {
               tickMargin={8}
               tickFormatter={(value) => `$${value.toLocaleString()}`}
               minTickGap={32}
-              domain={[98000, 100000]}
+              domain={[98000, 105000]}
             />
 
             <ChartTooltip

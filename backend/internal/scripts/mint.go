@@ -1,6 +1,6 @@
 package scripts
 
-// 0.0.6476439
+// 0.0.6509511
 import (
 	"fmt"
 	"log"
@@ -11,7 +11,7 @@ import (
 )
 
 func Mint() {
-	tokenId, err := hiero.TokenIDFromString("0.0.6476439")
+	tokenId, err := hiero.TokenIDFromString("0.0.6509511")
 	if err != nil {
 		panic(err)
 	}
@@ -37,38 +37,35 @@ func Mint() {
 
 	transaction, err := hiero.NewTokenMintTransaction().
 		SetTokenID(tokenId).
-		SetAmount(10_000).
+		SetAmount(100000).
 		SetMaxTransactionFee(hiero.HbarFrom(20, hiero.HbarUnits.Hbar)).
 		FreezeWith(client)
 
-if err != nil {
+	if err != nil {
 		panic(err)
-}
+	}
 
-
-txResponse, err := transaction.
+	txResponse, err := transaction.
 		Sign(operatorKey).
 		Execute(client)
 
-if err != nil {
+	if err != nil {
 		panic(err)
-}
+	}
 
+	receipt, err := txResponse.GetReceipt(client)
 
-receipt, err := txResponse.GetReceipt(client)
-
-if err != nil {
+	if err != nil {
 		panic(err)
-}
+	}
 
+	status := receipt.Status
 
-status := receipt.Status
-
-fmt.Printf("The transaction consensus status is %v\n", status)
+	fmt.Printf("The transaction consensus status is %v\n", status)
 }
 
 func Transfer() {
-	tokenId, err := hiero.TokenIDFromString("0.0.6476439")
+	tokenId, err := hiero.TokenIDFromString("0.0.6509511")
 	if err != nil {
 		panic(err)
 	}
@@ -94,44 +91,42 @@ func Transfer() {
 	if err != nil {
 		panic(err)
 	}
-accountId1, err := hiero.AccountIDFromString("0.0.6492202")
-if err != nil {
-	fmt.Println("Error creating transfer transaction")
+	accountId1, err := hiero.AccountIDFromString("0.0.6492202")
+	if err != nil {
+		fmt.Println("Error creating transfer transaction")
 		panic(err)
 	}
 
-transaction, err := hiero.NewTransferTransaction().
-AddTokenTransfer(tokenId, accountId0, -10_000).
-AddTokenTransfer(tokenId, accountId1, 10_000).
-FreezeWith(client)
+	transaction, err := hiero.NewTransferTransaction().
+		AddTokenTransfer(tokenId, accountId0, -10_000).
+		AddTokenTransfer(tokenId, accountId1, 10_000).
+		FreezeWith(client)
 
-if err != nil {
-	fmt.Println("Error freezing transaction", err)
+	if err != nil {
+		fmt.Println("Error freezing transaction", err)
 		panic(err)
 	}
 
+	txResponse, err := transaction.Sign(operatorKey).Execute(client)
 
+	if err != nil {
+		fmt.Println("Error executing transaction", err)
+		panic(err)
+	}
 
-txResponse, err := transaction.Sign(operatorKey).Execute(client)
+	receipt, err := txResponse.GetReceipt(client)
+	if err != nil {
+		fmt.Println("Error getting receipt", err)
+		panic(err)
+	}
 
-if err != nil {
-	fmt.Println("Error executing transaction", err)
-panic(err)
-}
+	status := receipt.Status
 
-receipt, err := txResponse.GetReceipt(client)
-if err != nil {
-	fmt.Println("Error getting receipt", err)
-panic(err)
-}
-
-status := receipt.Status
-
-fmt.Printf("The transaction consensus status is %v\n", status)
+	fmt.Printf("The transaction consensus status is %v\n", status)
 }
 
 func RevokeKyc() {
-	tokenId, err := hiero.TokenIDFromString("0.0.6476439")
+	tokenId, err := hiero.TokenIDFromString("0.0.6509511")
 	if err != nil {
 		panic(err)
 	}
@@ -162,23 +157,23 @@ func RevokeKyc() {
 		SetAccountID(accountId).
 		FreezeWith(client)
 
-if err != nil {
+	if err != nil {
 		panic(err)
-}
+	}
 
-txResponse, err := transaction.Sign(operatorKey).Execute(client)
-		
-if err != nil {
+	txResponse, err := transaction.Sign(operatorKey).Execute(client)
+
+	if err != nil {
 		panic(err)
-}
+	}
 
-receipt, err := txResponse.GetReceipt(client)
+	receipt, err := txResponse.GetReceipt(client)
 
-if err != nil {
+	if err != nil {
 		panic(err)
-}
-	
-status := receipt.Status
+	}
 
-fmt.Printf("The transaction consensus status is %v\n", status)
+	status := receipt.Status
+
+	fmt.Printf("The transaction consensus status is %v\n", status)
 }

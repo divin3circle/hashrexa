@@ -24,6 +24,17 @@ export interface User {
   tokenized_assets: TokenizedAsset[];
   updatedAt: string;
 }
+
+export interface UserPersonalInformation {
+  username: string;
+  email: string;
+  bio: string;
+  profilePicture: string;
+  topicId: string;
+  userAccountId: string;
+  profileMessageLength: number;
+}
+
 export interface Position {
   asset_id: string;
   symbol: string;

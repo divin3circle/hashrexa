@@ -1,4 +1,4 @@
-import { createAppKit } from "@reown/appkit/react";
+import { createAppKit, useAppKitAccount } from "@reown/appkit/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { projectId, metadata, networks } from "./config";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -16,6 +16,7 @@ import Home from "./pages/Home";
 import Loans from "./pages/Loans";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
+import ConnectButton from "./components/ui/ConnectButton";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,23 @@ createAppKit({
 });
 
 export function App() {
+  const { isConnected } = useAppKitAccount();
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <div className="flex flex-col mb-4">
+          <h1 className="text-2xl font-bold text-center">
+            Connect your wallet
+          </h1>
+          <p className="text-sm text-gray-500 text-center">
+            Seems like you are not plugged in. Please connect your wallet to
+            continue.
+          </p>
+        </div>
+        <ConnectButton />
+      </div>
+    );
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
