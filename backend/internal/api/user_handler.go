@@ -316,6 +316,7 @@ func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Requ
 		DateEnd:       time.Now(),
 		ExtendedHours: false,
 	}
+	
 	history, err := u.Alpaca.GetPortfolioHistory(historyRequest)
 	if err != nil {
 		fmt.Println("Error getting portfolio history: ", err)
@@ -331,6 +332,7 @@ func (u *UserHandler) HandlePortfolioHistory(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Failed to encode portfolio history", http.StatusInternalServerError)
 		return
 	}
+
 }
 
 func (u *UserHandler) HandleGetUserPersonalInformation(w http.ResponseWriter, r *http.Request) {
@@ -436,7 +438,28 @@ func (u *UserHandler) HandleUpdateUserPersonalInformation(w http.ResponseWriter,
 	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated personal information successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
 }
 
-
+func (u *UserHandler) HandleGetMarketPriceAnalysis(w http.ResponseWriter, r *http.Request) {
+	marketTopic, err := u.getLatestMessageFromTopic("0.0.6514924")
+	if err != nil {
+		http.Error(w, "Failed to get market topic", http.StatusInternalServerError)
+		return
+	}
+	var marketTopicData MarketTopic
+	err = json.Unmarshal([]byte(marketTopic), &marketTopicData)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal market topic", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]MarketTopic{
+		"marketTopic": marketTopicData,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode market topic", http.StatusInternalServerError)
+		return
+	}
+}
 
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)

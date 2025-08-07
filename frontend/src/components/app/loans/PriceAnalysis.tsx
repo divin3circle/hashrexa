@@ -7,21 +7,11 @@ import {
   ChartLegendContent,
   ChartTooltip,
 } from "@/components/ui/chart";
+import { usePriceAnalysis } from "@/hooks/usePriceAnalysis";
+import { Loader2 } from "lucide-react";
 
 export const description =
   "Lending pool analytics showing collateral and stablecoin distribution";
-
-const chartData = [
-  { month: "Sep", collateral: 28500, hash: 12000 },
-  { month: "Oct", collateral: 31200, hash: 13500 },
-  { month: "Nov", collateral: 29800, hash: 12800 },
-  { month: "Dec", collateral: 33400, hash: 14200 },
-  { month: "Jan", collateral: 36100, hash: 15500 },
-  { month: "Feb", collateral: 38700, hash: 16800 },
-  { month: "Mar", collateral: 41200, hash: 18100 },
-  { month: "Apr", collateral: 43800, hash: 19400 },
-  { month: "May", collateral: 46500, hash: 20700 },
-];
 
 const chartConfig = {
   collateral: {
@@ -35,6 +25,21 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function PriceAnalysis() {
+  const { data: chartData, isLoading, error } = usePriceAnalysis();
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p className="text-sm text-gray-500">Error: {error.message}</p>
+      </div>
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
+  }
   return (
     <ChartContainer
       config={chartConfig}
@@ -43,11 +48,11 @@ export function PriceAnalysis() {
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
         <XAxis
-          dataKey="month"
+          dataKey="hour"
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tickFormatter={(value) => value}
         />
         <ChartTooltip
           content={({ active, payload, label }) => {

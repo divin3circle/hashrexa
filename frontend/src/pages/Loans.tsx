@@ -3,8 +3,9 @@ import LiquidationIndicator from "@/components/app/loans/LiquidationIndicator";
 import LoansTable from "@/components/app/loans/LoansTable";
 import { PriceAnalysis } from "@/components/app/loans/PriceAnalysis";
 import { RatesChart } from "@/components/app/loans/RatesChart";
+import { BorrowModal } from "@/components/app/loans/BorrowModal";
+import { DepositModal } from "@/components/app/loans/DepositModal";
 import { FaAngleDoubleUp, FaWallet } from "react-icons/fa";
-import { Link } from "react-router-dom";
 import { PiHandDepositFill } from "react-icons/pi";
 import hash from "../../public/icon-dark.png";
 import dAAPL from "../../public/apple.png";
@@ -20,6 +21,8 @@ function Loans() {
   } = useTokens();
 
   const [applePrice, setApplePrice] = useState<number>(0);
+  const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchApplePrice = async () => {
@@ -29,17 +32,31 @@ function Loans() {
     fetchApplePrice();
   }, []);
 
+  const handleBorrow = (amount: number) => {
+    console.log("Borrowing:", amount, "dAAPL");
+    // Here you would implement the actual borrow logic
+    // For now, just log the amount
+  };
+
+  const handleDeposit = (amount: number) => {
+    console.log("Depositing:", amount, "HASH");
+    // Here you would implement the actual deposit logic
+    // For now, just log the amount
+  };
+
   if (errorTokenizedAssets) {
     return <div>Error: {errorTokenizedAssets?.message}</div>;
   }
 
   if (!tokenizedAssets) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="w-4 h-4 animate-spin" />
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
+
+  const maxBorrowAmount = tokenizedAssets[0]?.amount * 0.86 || 0;
 
   return (
     <div className="max-w-6xl mx-auto px-2">
@@ -61,12 +78,12 @@ function Loans() {
               <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-base font-semibold">Usable Collateral</p>
-                  <Link
-                    to="/home"
-                    className="text-sm text-primary font-semibold underline"
+                  <button
+                    onClick={() => setIsBorrowModalOpen(true)}
+                    className="text-sm text-primary font-semibold underline hover:text-[#ff9494] transition-colors"
                   >
                     Borrow
-                  </Link>
+                  </button>
                 </div>
                 {isLoadingTokenizedAssets ? (
                   <div className="w-full h-3/4 flex items-center justify-center">
@@ -97,11 +114,11 @@ function Loans() {
                   <div className="flex flex-col h-[130px] justify-between w-2/3">
                     <p className="text-base font-semibold">Loan Health</p>
                     <h1 className={`text-3xl text-red-500`}>
-                      53<span className="text-2xl text-gray-500">%</span>
+                      0<span className="text-2xl text-gray-500">%</span>
                     </h1>
                   </div>
                   <div className="h-[140px] w-1/4 md:w-1/3">
-                    <LiquidationIndicator percentage={53} />
+                    <LiquidationIndicator percentage={0} />
                   </div>
                 </div>
               </div>
@@ -192,7 +209,10 @@ function Loans() {
                 <p className="text-sm text-gray-500">Approx. $1,066.50</p>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <button className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10">
+                <button
+                  onClick={() => setIsDepositModalOpen(true)}
+                  className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10 hover:bg-[#ff9494] transition-colors"
+                >
                   Deposit
                 </button>
                 <button className="bg-white text-sm text-primary px-4 py-1.5 w-full rounded-full mt-10 border border-gray-200">
@@ -216,6 +236,18 @@ function Loans() {
           0x86124e1C6b96ECa5903Be011A4195E64347E9F6a
         </a>
       </p>
+      <BorrowModal
+        isOpen={isBorrowModalOpen}
+        onClose={() => setIsBorrowModalOpen(false)}
+        onBorrow={handleBorrow}
+        maxBorrowAmount={maxBorrowAmount}
+        currentPrice={applePrice}
+      />
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        onDeposit={handleDeposit}
+      />
     </div>
   );
 }

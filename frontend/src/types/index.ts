@@ -147,3 +147,13 @@ export interface AccountBalancesResponse {
   balances: AccountBalance[];
   links: BalanceLinks;
 }
+
+export interface MarketMessage {
+  collateral: number;
+  hash: number;
+  timestamp: number;
+}
+
+export interface MarketTopic {
+  messages: MarketMessage[];
+}

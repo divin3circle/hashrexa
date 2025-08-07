@@ -19,7 +19,13 @@ function LiquidationIndicator({ percentage }: { percentage: number }) {
         className={`h-[170px] rounded-b-3xl rounded-t-sm absolute bottom-0 left-0 right-0 flex items-center justify-center flex-col ${color}`}
         style={{ height: `${height}px` }}
       >
-        <p className="text-white text-center text-sm font-semibold">{text}</p>
+        <p
+          className={`text-white text-center text-sm font-semibold  ${
+            percentage <= 0 ? "hidden" : ""
+          }`}
+        >
+          {text}
+        </p>
       </div>
     </div>
   );
