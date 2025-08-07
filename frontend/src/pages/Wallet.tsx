@@ -8,7 +8,6 @@ import {
   usePortfolioBalance,
 } from "@/hooks/usePortfolio";
 import { Loader2 } from "lucide-react";
-import { HiOutlineRefresh } from "react-icons/hi";
 
 function Wallet() {
   const { data, isLoading, error, decimalPlaces } = usePortfolioBalance();

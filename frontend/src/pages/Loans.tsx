@@ -8,8 +8,39 @@ import { Link } from "react-router-dom";
 import { PiHandDepositFill } from "react-icons/pi";
 import hash from "../../public/icon-dark.png";
 import dAAPL from "../../public/apple.png";
+import { getAppleStockPrice, useTokens } from "@/hooks/useTokens";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 function Loans() {
+  const {
+    tokenizedAssets,
+    isLoading: isLoadingTokenizedAssets,
+    error: errorTokenizedAssets,
+  } = useTokens();
+
+  const [applePrice, setApplePrice] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchApplePrice = async () => {
+      const price = await getAppleStockPrice();
+      setApplePrice(price);
+    };
+    fetchApplePrice();
+  }, []);
+
+  if (errorTokenizedAssets) {
+    return <div>Error: {errorTokenizedAssets?.message}</div>;
+  }
+
+  if (!tokenizedAssets) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-2">
       <Navbar />
@@ -29,9 +60,7 @@ function Loans() {
             <div className="flex flex-col gap-2 w-full md:w-1/2">
               <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-base font-semibold">
-                    Available Collateral
-                  </p>
+                  <p className="text-base font-semibold">Usable Collateral</p>
                   <Link
                     to="/home"
                     className="text-sm text-primary font-semibold underline"
@@ -39,12 +68,29 @@ function Loans() {
                     Borrow
                   </Link>
                 </div>
-                <div className="mt-4 flex flex-col gap-2">
-                  <h1 className="text-4xl font-semibold">
-                    74.12 <span className="text-xl text-gray-500">dAAPL</span>
-                  </h1>
-                  <p className="text-sm text-gray-500">$14,090.45 </p>
-                </div>
+                {isLoadingTokenizedAssets ? (
+                  <div className="w-full h-3/4 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <h1 className="text-4xl font-semibold">
+                      {(tokenizedAssets[0].amount * 0.86).toFixed(2)}
+                      <span className="text-xl text-gray-500"> dAAPL</span>
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                      $
+                      {(
+                        applePrice *
+                        tokenizedAssets[0].amount *
+                        0.86
+                      ).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
@@ -159,6 +205,17 @@ function Loans() {
         </div>
         {/* end rhs */}
       </div>
+      <p className="text-center text-gray-400 text-xs mt-8 flex items-center justify-center gap-2">
+        Market Testnet Contract:{" "}
+        <a
+          className="text-primary underline"
+          href="https://hashscan.io/testnet/contract/0.0.6492237"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          0x86124e1C6b96ECa5903Be011A4195E64347E9F6a
+        </a>
+      </p>
     </div>
   );
 }

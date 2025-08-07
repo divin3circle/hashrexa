@@ -67,7 +67,7 @@ async function getAndProcessTokenizedAssets(
   return processedTokenizedAssets;
 }
 
-async function getAppleStockPrice(): Promise<number> {
+export async function getAppleStockPrice(): Promise<number> {
   const appleStock = await getStocks();
   return appleStock.find((stock) => stock.symbol === "AAPL")?.price || 0;
 }
