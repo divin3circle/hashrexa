@@ -21,6 +21,7 @@ export interface User {
   createdAt: string;
   profilePicture: string;
   loan_status: LoanStatus[];
+  personalInformation: UserPersonalInformation;
   tokenized_assets: TokenizedAsset[];
   updatedAt: string;
 }
@@ -79,9 +80,14 @@ export interface Portfolio {
 export interface Token {
   symbol: string;
   name: string;
-  amount: number;
-  valueUSD: number;
   icon: string;
+  token_id: string;
+  decimals: number;
+}
+
+export interface TokenBalance extends Token {
+  balance: number;
+  valueUSD: number;
 }
 
 export interface FullTokenizedAssets {
@@ -119,4 +125,25 @@ export interface FullLoanDetails {
   borrowedTokenImage: string;
   apy: number;
   borrowedAmount: number;
+}
+
+export interface TokenBalance {
+  token_id: string;
+  balance: number;
+}
+
+export interface AccountBalance {
+  account: string;
+  balance: number;
+  tokens: TokenBalance[];
+}
+
+export interface BalanceLinks {
+  next: string | null;
+}
+
+export interface AccountBalancesResponse {
+  timestamp: string;
+  balances: AccountBalance[];
+  links: BalanceLinks;
 }

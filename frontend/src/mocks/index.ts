@@ -50,16 +50,16 @@ export const MOCK_TOKENS: Token[] = [
   {
     symbol: "HBAR",
     name: "Hedera",
-    amount: 0,
-    valueUSD: 0.245,
     icon: STOCK_LOGOS.HEDERA,
+    token_id: "HBAR",
+    decimals: 8,
   },
   {
     symbol: "HASH",
     name: "HASH",
-    amount: 0,
-    valueUSD: 0.966,
     icon: STOCK_LOGOS.HASH,
+    token_id: "0.0.6494054",
+    decimals: 6,
   },
 ];
 

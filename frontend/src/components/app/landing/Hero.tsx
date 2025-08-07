@@ -6,10 +6,30 @@ import { FaFireFlameCurved } from "react-icons/fa6";
 
 import { motion } from "framer-motion";
 import { TextGenerateEffect } from "../../ui/text-generate-effect";
+import { useAppKitAccount } from "@reown/appkit/react-core";
+import { useNavigate } from "react-router-dom";
+import { useTopicExists } from "@/hooks/useTopicManager";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 const words = `Bringing the world closer to the blockchain via decentralized finance`;
 
 function Hero() {
+  const { isConnected } = useAppKitAccount();
+  const navigate = useNavigate();
+  const { topicExists, isLoading } = useTopicExists();
+
+  const handleGetStarted = async () => {
+    if (isConnected) {
+      if (topicExists) {
+        navigate("/home");
+      } else {
+        navigate("/setup");
+      }
+    } else {
+      toast.error("Please connect your wallet to continue");
+    }
+  };
   return (
     <div className="flex flex-col items-center justify-center md:h-screen gap-10">
       <motion.section
@@ -36,7 +56,7 @@ function Hero() {
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="rounded-[2rem] p-4 w-full  md:w-full h-[450px] bg-gray-100 relative hover:shadow-sm shadow-[#FF9494] transition-all duration-500"
+          className="rounded-[2rem] p-4 w-full  md:w-full h-[450px] bg-gray-100 relative hover:shadow-none border border-gray-300 shadow-[#FF9494] transition-all duration-500"
         >
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -64,8 +84,13 @@ function Hero() {
             whileTap={{ scale: 0.95 }}
             transition={{ duration: 0.6, delay: 0.8 }}
             className="bg-[#FF9494] text-white font-mono font-semibold text-md rounded-xl px-4 py-1.5 lowercase"
+            onClick={handleGetStarted}
           >
-            Get Started
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "Get Started"
+            )}
           </motion.button>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -80,7 +105,7 @@ function Hero() {
               <img
                 src={hedera}
                 alt="hedera"
-                width={140}
+                width={100}
                 height={100}
                 className="border border-gray-300 rounded-full py-[-10px] px-4 "
               />
@@ -92,7 +117,7 @@ function Hero() {
               <img
                 src={alpaca}
                 alt="alpaca"
-                width={140}
+                width={100}
                 height={100}
                 className="border border-gray-300 rounded-full py-3 px-4 "
               />

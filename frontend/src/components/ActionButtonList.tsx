@@ -9,10 +9,10 @@ import {
 import { networks } from "../config";
 
 export const ActionButtonList = () => {
-  const { disconnect } = useDisconnect(); // AppKit hook to disconnect
-  const { open } = useAppKit(); // AppKit hook to open the modal
-  const { switchNetwork } = useAppKitNetwork(); // AppKithook to switch network
-  const { address, isConnected } = useAppKitAccount(); // AppKit hook to get the address and check if the user is connected
+  const { disconnect } = useDisconnect();
+  const { open } = useAppKit();
+  const { switchNetwork } = useAppKitNetwork();
+  const { address, isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider<Provider>("eip155");
 
   const handleDisconnect = async () => {
@@ -25,7 +25,7 @@ export const ActionButtonList = () => {
 
   // function to sing a msg
   const handleSignMsg = async () => {
-    const message = "Hello Reown AppKit!"; // message to sign
+    const message = "Hello Reown AppKit!";
     try {
       const result = (await walletProvider.request({
         method: "personal_sign",

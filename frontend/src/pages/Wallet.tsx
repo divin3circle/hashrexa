@@ -3,14 +3,22 @@ import StocksTable from "@/components/app/wallet/Stocks";
 import TokenizedTable from "@/components/app/wallet/Tokenized";
 import TokensTable from "@/components/app/wallet/Tokens";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePortfolioBalance } from "@/hooks/usePortfolio";
+import {
+  useHederaWalletBalanceUSD,
+  usePortfolioBalance,
+} from "@/hooks/usePortfolio";
 import { Loader2 } from "lucide-react";
 import { HiOutlineRefresh } from "react-icons/hi";
 
 function Wallet() {
   const { data, isLoading, error, decimalPlaces } = usePortfolioBalance();
+  const {
+    data: hederaWalletBalanceUSD,
+    isLoading: hederaWalletBalanceUSDLoading,
+    error: hederaWalletBalanceUSDError,
+  } = useHederaWalletBalanceUSD();
 
-  if (isLoading) {
+  if (isLoading || hederaWalletBalanceUSDLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -18,11 +26,11 @@ function Wallet() {
     );
   }
 
-  if (error) {
+  if (error || hederaWalletBalanceUSDError) {
     return <div>Error: {error?.message}</div>;
   }
 
-  if (!data) {
+  if (!data || !hederaWalletBalanceUSD) {
     return <div>No data</div>;
   }
 
@@ -32,30 +40,52 @@ function Wallet() {
       <div className="flex justify-between items-center mt-4 mb-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-sm md:text-base font-semibold text-gray-500 ">
-            Unified Wallet Balance
+            Alpaca Wallet Balance
           </h1>
-          {isLoading ? (
+          {isLoading || hederaWalletBalanceUSDLoading ? (
             <Skeleton className="w-20 h-4" />
           ) : (
-            <h1 className="text-4xl md:text-6xl my-2">
-              $
-              {data.portfolioValueUSD.toLocaleString("en-US", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })}
-              <span className="text-2xl md:text-4xl text-gray-500">
-                {decimalPlaces > 0 ? "." : ""}
-                {data.portfolioValueUSD
-                  ?.toString()
-                  ?.split(".")[1]
-                  ?.slice(0, decimalPlaces)}
-              </span>
-              <span className="text-sm ml-1 md:text-base text-[#ff9494] font-bold">
-                USD
-              </span>
-            </h1>
+            <>
+              <h1 className="text-4xl md:text-6xl my-2">
+                $
+                {data.portfolioValueUSD.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+                <span className="text-2xl md:text-4xl text-gray-500">
+                  {decimalPlaces > 0 ? "." : ""}
+                  {data.portfolioValueUSD
+                    ?.toString()
+                    ?.split(".")[1]
+                    ?.slice(0, decimalPlaces)}
+                </span>
+                <span className="text-sm ml-1 md:text-base text-[#ff9494] font-bold">
+                  USD
+                </span>
+              </h1>
+              <h1 className="text-sm md:text-base font-semibold text-gray-500 mt-4">
+                Hedera Wallet Balance
+              </h1>
+              <h1 className="text-xl md:text-2xl">
+                $
+                {hederaWalletBalanceUSD.toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+                <span className="text-xl md:text-2xl text-gray-500">
+                  {decimalPlaces > 0 ? "." : ""}
+                  {hederaWalletBalanceUSD
+                    ?.toString()
+                    ?.split(".")[1]
+                    ?.slice(0, decimalPlaces)}
+                </span>
+                <span className="text-sm ml-1 md:text-base text-[#ff9494] font-bold">
+                  USD
+                </span>
+              </h1>
+            </>
           )}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mt-4">
             <div className="flex flex-col gap-1 text-green-600 py-1 bg-green-500/10 px-2 rounded-3xl border border-green-600/20">
               <p className="text-sm text-gray-500">
                 {data.tokenizedAssets} Minted tokens
@@ -67,9 +97,6 @@ function Wallet() {
               </p>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <HiOutlineRefresh className="text-2xl text-primary cursor-pointer" />
         </div>
       </div>
       <StocksTable />

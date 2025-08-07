@@ -17,6 +17,7 @@ import Loans from "./pages/Loans";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import ConnectButton from "./components/ui/ConnectButton";
+import ProfileSetup from "./pages/ProfileSetup";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ export function App() {
           <Route path="/loans" element={<Loans />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile-setup" element={<ProfileSetup />} />
         </Routes>
         <Toaster />
       </BrowserRouter>

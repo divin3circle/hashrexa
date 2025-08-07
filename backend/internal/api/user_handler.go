@@ -33,13 +33,12 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 	MyPrivateKey := os.Getenv("MY_PRIVATE_KEY")
 	privateKey, err := hiero.PrivateKeyFromStringEd25519(MyPrivateKey)
 	if err != nil {
+		fmt.Println("Error parsing private key: ", err)
 		http.Error(w, "Failed to parse private key", http.StatusInternalServerError)
 		return
 	}
-	// get user account id and topic id from params
 	userAccountId := chi.URLParam(r, "userAccountId")
 	topicId := chi.URLParam(r, "topicId")
-
 
 	if userAccountId == "" || topicId == "" {
 		http.Error(w, "Missing user account ID or topic ID", http.StatusBadRequest)
@@ -51,36 +50,49 @@ func (u *UserHandler) HandleRegisterUser(w http.ResponseWriter, r *http.Request)
 		return txn.SetEntry(e)
 	})
 	if err != nil {
+		fmt.Println("Error updating DB: ", err)
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
 
-	var personalInformation UserPersonalInformation
+	personalInformation := UserPersonalInformation{
+		TopicId:             topicId,
+		UserAccountId:       userAccountId,
+		ProfilePicture:      "",
+		ProfileMessageLength: 0,
+		Email:               "",
+		Bio:                 "",
+		Username:            "",
+	}
 
-	err = json.NewDecoder(r.Body).Decode(&personalInformation)
-	if err != nil {
-		http.Error(w, "Failed to decode personal information", http.StatusInternalServerError)
-		return
+	if r.Body != nil && r.ContentLength > 0 {
+		err = json.NewDecoder(r.Body).Decode(&personalInformation)
+		if err != nil {
+			fmt.Println("Error decoding personal information: ", err)
+			fmt.Println("Using default personal information values")
+		}
 	}
 
 	user := User{
-		UserAccountId:   userAccountId,
-		TopicId:         topicId,
-		CreatedAt:       time.Now().Format(time.RFC3339),
-		ProfilePicture:  "",
+		UserAccountId:       userAccountId,
+		TopicId:             topicId,
+		CreatedAt:           time.Now().Format(time.RFC3339),
+		ProfilePicture:      "",
 		PersonalInformation: personalInformation,
-		LoanStatus:      []LoanStatus{},
-		TokenizedAssets: []StockToken{},
-		UpdatedAt:       time.Now().Format(time.RFC3339),
+		LoanStatus:          []LoanStatus{},
+		TokenizedAssets:     []StockToken{},
+		UpdatedAt:           time.Now().Format(time.RFC3339),
 	}
 
 	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
+		fmt.Println("Error converting topic ID to Hedera topic ID: ", err)
 		http.Error(w, "Failed to convert topic ID to Hedera topic ID", http.StatusInternalServerError)
 		return
 	}
 	marshaledUser, err := json.Marshal(user)
 	if err != nil {
+		fmt.Println("Error marshaling user data: ", err)
 		http.Error(w, "Failed to marshal user data", http.StatusInternalServerError)
 		return
 	}
@@ -355,6 +367,75 @@ func (u *UserHandler) HandleGetUserPersonalInformation(w http.ResponseWriter, r 
 	}
 }
 
+func (u *UserHandler) HandleUpdateUserPersonalInformation(w http.ResponseWriter, r *http.Request) {
+	MyPrivateKey := os.Getenv("MY_PRIVATE_KEY")
+	privateKey, err := hiero.PrivateKeyFromStringEd25519(MyPrivateKey)
+	if err != nil {
+		http.Error(w, "Failed to parse private key", http.StatusInternalServerError)
+		return
+	}
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	topicId, err := u.getUserTopicId(userAccountId)
+	if err != nil {
+		http.Error(w, "Failed to get user topic ID", http.StatusInternalServerError)
+		return
+	}
+	userData, err := u.getLatestMessageFromTopic(topicId)
+	if err != nil {
+		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		return
+	}
+	var personalInformation UserPersonalInformation
+	err = json.NewDecoder(r.Body).Decode(&personalInformation)
+	if err != nil {
+		http.Error(w, "Failed to decode personal information", http.StatusInternalServerError)
+		return
+	}
+	personalInformation.TopicId = topicId
+	var user User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+		return
+	}
+	user.PersonalInformation = personalInformation
+	marshaledUser, err := json.Marshal(user)
+	if err != nil {
+		http.Error(w, "Failed to marshal user data", http.StatusInternalServerError)
+		return
+	}
+	topicID, err := hiero.TopicIDFromString(topicId)
+	if err != nil {
+		http.Error(w, "Failed to convert topic ID to Hedera topic ID", http.StatusInternalServerError)
+		return
+	}
+
+	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
+		SetTransactionMemo("User updated personal information").
+		SetTopicID(topicID).
+		SetMessage(marshaledUser).
+		FreezeWith(u.Client)
+
+	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
+	fmt.Printf("The topic message submit transaction ID: %s\n", topicMsgSubmitTxId.String())
+	topicMsgSubmitTxSigned := topicMsgSubmitTx.Sign(privateKey)
+	topicMsgSubmitTxSubmitted, _ := topicMsgSubmitTxSigned.Execute(u.Client)
+	topicMsgSubmitTxReceipt, _ := topicMsgSubmitTxSubmitted.GetReceipt(u.Client)
+
+	topicMsgSeqNum := topicMsgSubmitTxReceipt.TopicSequenceNumber
+	fmt.Printf("Topic Message Sequence Number: %v\n", topicMsgSeqNum)
+
+	_ = u.Client.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated personal information successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
+}
+
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {
@@ -469,7 +550,14 @@ func (u *UserHandler) mintAndRecordTokenizedAsset(userAccountId string, tokenize
 	fmt.Printf("Mint Status: %v\n", mintSuccess)
 	fmt.Printf("Record Status: %v\n", recordSuccess)
 
-	return mintSuccess && recordSuccess, nil
+	transferSuccess, err := u.transfer(userAccountId, int64(amountToMint))
+	if err != nil {
+		log.Fatalf("Failed to transfer tokenized asset: %v", err)
+		return transferSuccess, err
+	}
+	fmt.Println("Transferred tokenized asset✅")
+
+	return mintSuccess && recordSuccess && transferSuccess, nil
 }
 
 func (u *UserHandler) mint(amountToMint float64) (bool, error) {
@@ -514,6 +602,7 @@ func (u *UserHandler) mint(amountToMint float64) (bool, error) {
 	status := receipt.Status
 
 	fmt.Printf("The transaction consensus status is %v\n", status)
+
 
 	return true, nil
 }

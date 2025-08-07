@@ -36,7 +36,7 @@ export function useTopicManager() {
       const success = await registerTopic(address, topicId);
       if (success) {
         associate();
-        navigate("/home");
+        navigate("/profile-setup");
       }
     },
     onError: (error) => {

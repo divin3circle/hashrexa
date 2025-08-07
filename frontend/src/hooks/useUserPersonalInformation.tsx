@@ -1,32 +1,33 @@
+import { BACKEND_URL } from "@/config";
 import { UserPersonalInformation } from "@/types";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAppKitAccount } from "@reown/appkit/react-core";
+import { useQuery } from "@tanstack/react-query";
 
 export function usePersonalInformation() {
+  const { address } = useAppKitAccount();
+  if (!address) {
+    throw new Error("User not connected");
+  }
   const { data, isLoading, error } = useQuery({
     queryKey: ["personalInformation"],
-    queryFn: () => getPersonalInformation(),
+    queryFn: () => getPersonalInformation(address),
   });
 
   return { data, isLoading, error };
 }
 
-export function useSetPersonalInformation() {
-  const {
-    mutate,
-    isPending: isLoading,
-    error,
-  } = useMutation({
-    mutationFn: (personalInformation: UserPersonalInformation) =>
-      setPersonalInformation(personalInformation),
-  });
-
-  return { mutate, isLoading, error };
-}
-
-async function getPersonalInformation() {}
-
-async function setPersonalInformation(
-  personalInformation: UserPersonalInformation
-) {
-  console.log(personalInformation);
+async function getPersonalInformation(
+  address: string
+): Promise<UserPersonalInformation> {
+  const response = await fetch(
+    `${BACKEND_URL}/personal-information/${address}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const data = await response.json();
+  return data.personalInformation;
 }

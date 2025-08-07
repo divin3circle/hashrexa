@@ -14,14 +14,6 @@ function Setup() {
 
   return (
     <div className="max-w-6xl mx-auto px-2 flex flex-col items-center justify-center h-screen">
-      {/* <Navbar />
-      <div
-        className="flex items-center gap-2 mt-4 w-fit cursor-pointer"
-        onClick={() => navigate("/")}
-      >
-        <FaChevronLeft />
-        <h1 className="text-base font-ubuntu-sans font-semibold">Back</h1>
-      </div> */}
       <div className="flex flex-col gap-2 max-w-md mx-auto">
         <h1 className="text-2xl font-ubuntu-sans font-semibold text-start md:text-center">
           Welcome to Hashrexa

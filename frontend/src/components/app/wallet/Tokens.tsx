@@ -102,19 +102,16 @@ function TokensTable() {
                   </td>
                   <td className="py-4 px-6 text-sm text-gray-900">
                     $
-                    {token.amount.toLocaleString("en-US", {
+                    {(token?.balance * token.valueUSD).toLocaleString("en-US", {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
                     })}
                   </td>
                   <td className="py-4 px-6 text-sm text-gray-900 hidden md:block">
-                    {(token.valueUSD * token.amount * 0.8).toLocaleString(
-                      "en-US",
-                      {
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1,
-                      }
-                    )}
+                    {(token?.balance || 0).toLocaleString("en-US", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}
                   </td>
                 </tr>
               ))}
