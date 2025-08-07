@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var newContractID, _ = hiero.ContractIDFromString("0.0.6500519")
+var newContractID, _ = hiero.ContractIDFromString("0.0.6492237") // hashrexa market contract id
 
 func TestCall(){
 	err := godotenv.Load(".env")

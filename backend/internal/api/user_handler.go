@@ -436,6 +436,8 @@ func (u *UserHandler) HandleUpdateUserPersonalInformation(w http.ResponseWriter,
 	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated personal information successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
 }
 
+
+
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)
 	if err != nil {

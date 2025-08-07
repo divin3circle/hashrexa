@@ -82,3 +82,23 @@ type UserHandler struct {
 	Client *hiero.Client
 	Alpaca *alpaca.Client
 }
+
+type Market struct {
+	PriceAnalysis MarketTopic `json:"priceAnalysis"`
+	LastUpdate int `json:"lastUpdate"`
+	Fee int `json:"fee"`
+	TotalSupplyAssets int `json:"totalSupplyAssets"`
+	TotalSupplyShares int `json:"totalSupplyShares"`
+	TotalBorrowAssets int `json:"totalBorrowAssets"`
+	TotalBorrowShares int `json:"totalBorrowShares"`
+}
+
+type MarketMessages struct {
+	Collateral float64 `json:"collateral"`
+	Hash float64 `json:"hash"`
+	Timestamp int64 `json:"timestamp"`
+}
+
+type MarketTopic struct {
+	Messages []MarketMessages `json:"messages"`
+}
