@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWalletTokens } from "@/hooks/usePortfolio";
+import { useDepositHash } from "@/hooks/useMartket";
 
 interface DepositModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export function DepositModal({
     null
   );
   const { data: walletTokens, isLoading } = useWalletTokens();
+  const { depositHash, isPending: isDepositPending } = useDepositHash();
 
   if (!isOpen) return null;
 
@@ -45,13 +47,24 @@ export function DepositModal({
   const handleDeposit = () => {
     const depositAmount = parseFloat(amount);
     if (depositAmount >= 1 && depositAmount <= maxDepositAmount) {
+      // Calculate shares (this would typically come from the contract)
+      const shares = depositAmount; // Simplified - in reality this would be calculated based on pool state
+
+      // Call the deposit function
+      depositHash({
+        amountToDeposit: depositAmount,
+        shares: shares,
+        callData: "0x", // Empty call data for basic deposit
+      });
+
       onDeposit(depositAmount);
-      onClose();
+      // Removed onClose() - modal will stay open for user to see transaction status
     }
   };
 
   const usdValue = parseFloat(amount) * hashValueUSD;
   const isAmountBelowMinimum = parseFloat(amount) > 0 && parseFloat(amount) < 1;
+  const isProcessing = isLoading || isDepositPending;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -197,11 +210,11 @@ export function DepositModal({
               !amount ||
               parseFloat(amount) < 1 ||
               parseFloat(amount) > maxDepositAmount ||
-              isLoading
+              isProcessing
             }
             className="flex-1 bg-[#ff9494] hover:bg-[#ff8080] text-white"
           >
-            {isLoading ? "Loading..." : "Deposit"}
+            {isProcessing ? "Processing..." : "Deposit"}
           </Button>
         </div>
       </div>

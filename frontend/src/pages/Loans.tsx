@@ -111,11 +111,19 @@ function Loans() {
               </div>
               <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex flex-col h-[130px] justify-between w-2/3">
+                  <div className="flex flex-col w-2/3">
                     <p className="text-base font-semibold">Loan Health</p>
-                    <h1 className={`text-3xl text-red-500`}>
-                      0<span className="text-2xl text-gray-500">%</span>
-                    </h1>
+                    <div className="flex gap-2 flex-col">
+                      <h1 className={`text-3xl text-red-500`}>
+                        0<span className="text-2xl text-gray-500">%</span>
+                      </h1>
+                      <button
+                        disabled
+                        className="bg-primary text-sm text-white px-2 py-1.5 w-2/3 rounded-full mt-10"
+                      >
+                        Repay
+                      </button>
+                    </div>
                   </div>
                   <div className="h-[140px] w-1/4 md:w-1/3">
                     <LiquidationIndicator percentage={0} />
@@ -225,7 +233,7 @@ function Loans() {
         </div>
         {/* end rhs */}
       </div>
-      <p className="text-center text-gray-400 text-xs mt-8 flex items-center justify-center gap-2">
+      <p className="text-center text-gray-400 text-xs mt-8 flex flex-col md:flex-row items-center justify-center gap-2">
         Market Testnet Contract:{" "}
         <a
           className="text-primary underline"

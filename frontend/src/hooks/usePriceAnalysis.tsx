@@ -25,13 +25,31 @@ async function getMarketPriceAnalysis(): Promise<MarketTopic> {
 
 async function formatMarketPriceAnalysis(marketTopic: MarketTopic) {
   const applePrice = await getAppleStockPrice();
-  return marketTopic.messages.map((message) => ({
-    hour: new Date(message.timestamp).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }),
-    collateral: message.collateral * applePrice,
-    hash: message.hash * 100,
-  }));
+  return marketTopic.messages.map((message) => {
+    let date: Date;
+
+    const timestamp = message.timestamp as number | string;
+
+    if (typeof timestamp === "string") {
+      if (timestamp.includes("T") || timestamp.includes("-")) {
+        date = new Date(timestamp);
+      } else {
+        const timestampMs = parseFloat(timestamp) * 1000;
+        date = new Date(timestampMs);
+      }
+    } else {
+      const timestampMs = timestamp > 1e10 ? timestamp : timestamp * 1000;
+      date = new Date(timestampMs);
+    }
+
+    return {
+      hour: date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      collateral: message.collateral * applePrice,
+      hash: message.hash * 100,
+    };
+  });
 }

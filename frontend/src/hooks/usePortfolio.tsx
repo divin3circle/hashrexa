@@ -85,6 +85,7 @@ async function getWalletTokens(
   const data = (await response.json()) as AccountBalancesResponse;
   const hash = MOCK_TOKENS[1];
   const hbar = MOCK_TOKENS[0];
+  console.log("Hash balance:", await getTokenBalance(hash.symbol, data));
 
   const hashBalance = (await getTokenBalance(hash.symbol, data)) / 10 ** 6;
   const hbarBalance = (await getTokenBalance(hbar.symbol, data)) / 10 ** 8;
@@ -139,7 +140,7 @@ async function getTokenBalance(
   if (token === "HASH") {
     return (
       balanceQuery.balances[0].tokens.find(
-        (token) => token.token_id === token.token_id
+        (token) => token.token_id === "0.0.6494054"
       )?.balance || 0
     );
   } else if (token === "HBAR") {

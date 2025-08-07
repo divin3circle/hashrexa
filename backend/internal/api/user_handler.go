@@ -438,6 +438,64 @@ func (u *UserHandler) HandleUpdateUserPersonalInformation(w http.ResponseWriter,
 	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated personal information successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
 }
 
+// func (u *UserHandler) HandleUpdatePriceAnalysis(w http.ResponseWriter, r *http.Request) {
+
+// }
+
+func (u *UserHandler) UpdatePriceAnalysis(collateralTransacted, hashTransacted float64) (bool, error) {
+	privateKey, err := hiero.PrivateKeyFromStringEd25519(os.Getenv("MY_PRIVATE_KEY"))
+	if err != nil {
+		return false, err
+	}
+	marketTopic, err := u.getLatestMessageFromTopic("0.0.6514924")
+	if err != nil {
+		return false, err
+	}
+	var marketTopicData MarketTopic
+	err = json.Unmarshal([]byte(marketTopic), &marketTopicData)
+	if err != nil {
+		fmt.Println("Error un-marshalling market topic: ", err)
+		return false, err
+	}
+	messages := marketTopicData.Messages
+	latestCollateral := messages[len(messages)-1].Collateral
+	latestHash := messages[len(messages)-1].Hash
+	
+	marketTopicData.Messages = append(marketTopicData.Messages, MarketMessages{
+		Collateral: latestCollateral + collateralTransacted,
+		Hash: latestHash + hashTransacted,
+		Timestamp: time.Now().Unix(),
+	})
+	marshaledMarketTopic, err := json.Marshal(marketTopicData)
+	if err != nil {
+		fmt.Println("Error marshalling market topic: ", err)
+		return false, err
+	}
+	topicID, err := hiero.TopicIDFromString("0.0.6514924")
+	if err != nil {
+		fmt.Println("Error converting topic ID to Hedera topic ID: ", err)
+		return false, err
+	}
+
+	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
+		SetTransactionMemo("Market price analysis updated").
+		SetTopicID(topicID).
+		SetMessage(marshaledMarketTopic).
+		FreezeWith(u.Client)
+
+	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
+	fmt.Printf("The topic message submit transaction ID: %s\n", topicMsgSubmitTxId.String())
+	topicMsgSubmitTxSigned := topicMsgSubmitTx.Sign(privateKey)
+	topicMsgSubmitTxSubmitted, _ := topicMsgSubmitTxSigned.Execute(u.Client)
+	topicMsgSubmitTxReceipt, _ := topicMsgSubmitTxSubmitted.GetReceipt(u.Client)
+
+	topicMsgSeqNum := topicMsgSubmitTxReceipt.TopicSequenceNumber
+	fmt.Printf("Topic Message Sequence Number: %v\n", topicMsgSeqNum)
+
+	_ = u.Client.Close()
+	return true, nil
+}
+
 func (u *UserHandler) HandleGetMarketPriceAnalysis(w http.ResponseWriter, r *http.Request) {
 	marketTopic, err := u.getLatestMessageFromTopic("0.0.6514924")
 	if err != nil {
