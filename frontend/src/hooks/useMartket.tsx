@@ -17,27 +17,12 @@ import {
   TokenId,
 } from "@hashgraph/sdk";
 import { metadata, projectId } from "@/config";
-import { MarketParams } from "@/lib/utils";
 import { toast } from "react-hot-toast";
-import { AbiCoder } from "ethers";
 
-const abiCoder = new AbiCoder();
+const contractId = ContractId.fromString("0.0.6492237");
 
-// Encode the struct
-const encodedStruct = abiCoder.encode(
-  [
-    "tuple(address loanToken, address collateralToken, address oracle, address irm, uint256 lltv)",
-  ],
-  [
-    [
-      MarketParams.loanToken,
-      MarketParams.collateralToken,
-      MarketParams.oracle,
-      MarketParams.irm,
-      MarketParams.lltv,
-    ],
-  ]
-);
+export const encodedStruct =
+  "0x0000000000000000000000000000000000631766000000000000000000000000000000000000000000000000000000000000635c710535a028c31c3d169b74e0b4bb141e064cac2b5c2f4fc5416d96ac447388ead98c8eedb45d6ba820000000000000000000000000000000000000000000000000bef55718ad60000";
 
 export function useDepositHash() {
   const { address } = useAppKitAccount();
@@ -48,7 +33,7 @@ export function useDepositHash() {
       callData: string;
     }) => {
       if (!address) throw new Error("No address");
-      //   await approveAllowance(params.amountToDeposit, address);
+      await approveAllowance(params.amountToDeposit, address);
       return depositHashFunction(
         params.amountToDeposit,
         params.shares,
@@ -57,6 +42,9 @@ export function useDepositHash() {
       );
     },
     onSuccess: () => {
+      if (address) {
+        checkAllowance(address);
+      }
       toast.success("Deposit successful");
     },
     onError: (error) => {
@@ -76,9 +64,9 @@ async function depositHashFunction(
   if (!userAccountId) {
     return;
   }
+
   const accountId = AccountId.fromString(userAccountId).toString();
   const evmAddress = accountIdToEvmAddress(accountId);
-  const contractId = ContractId.fromString("0.0.6492237");
 
   const dAppConnector = new DAppConnector(
     metadata,
@@ -92,19 +80,23 @@ async function depositHashFunction(
 
   await dAppConnector.openModal();
   const transactionId = TransactionId.generate(accountId);
+
+  const callDataBytes = callData.startsWith("0x")
+    ? new Uint8Array(Buffer.from(callData.slice(2), "hex"))
+    : new Uint8Array(Buffer.from(callData, "hex"));
+
   const depositTx = new ContractExecuteTransaction()
     .setTransactionId(transactionId)
     .setContractId(contractId)
-    .setGas(10_000_000)
+    .setGas(15_000_000)
     .setFunction(
       "supply",
       new ContractFunctionParameters()
         .addBytes(new Uint8Array(Buffer.from(encodedStruct.slice(2), "hex")))
         .addUint256(amountToDeposit)
         .addUint256(shares)
-        .addString(evmAddress)
-        .addString(callData)
-        .addBytesArray([])
+        .addAddress(evmAddress)
+        .addBytes(callDataBytes)
     );
 
   await dAppConnector.signAndExecuteTransaction({
@@ -120,52 +112,67 @@ function accountIdToEvmAddress(accountIdString: string): string {
 }
 
 async function approveAllowance(amount: number, userAccountId: string) {
-  const accountId = AccountId.fromString(userAccountId).toString();
-  const contractId = ContractId.fromString("0.0.6492237");
-  const hashTokenId = TokenId.fromString("0.0.6494054");
+  try {
+    const accountId = AccountId.fromString(userAccountId).toString();
+    const hashTokenId = TokenId.fromString("0.0.6494054");
 
-  const dAppConnector = new DAppConnector(
-    metadata,
-    LedgerId.TESTNET,
-    projectId,
-    Object.values(HederaJsonRpcMethod),
-    [],
-    [HederaChainId.Testnet]
-  );
-  await dAppConnector.init();
+    console.log("Approving allowance:", {
+      tokenId: hashTokenId.toString(),
+      owner: accountId,
+      spender: contractId.toString(),
+      amount: 2 * 10 ** 6,
+    });
 
-  await dAppConnector.openModal();
-
-  const transaction =
-    new AccountAllowanceApproveTransaction().approveTokenAllowance(
-      hashTokenId,
-      accountId,
-      contractId,
-      amount
+    const dAppConnector = new DAppConnector(
+      metadata,
+      LedgerId.TESTNET,
+      projectId,
+      Object.values(HederaJsonRpcMethod),
+      [],
+      [HederaChainId.Testnet]
     );
 
-  await dAppConnector.signAndExecuteTransaction({
-    signerAccountId: accountId,
-    transactionList: transactionToBase64String(transaction),
-  });
+    await dAppConnector.init();
+    await dAppConnector.openModal();
+
+    const transaction = new AccountAllowanceApproveTransaction()
+      .approveTokenAllowance(
+        hashTokenId,
+        accountId,
+        contractId.toString(),
+        amount * 10 ** 6
+      )
+      .setTransactionId(TransactionId.generate(accountId));
+
+    console.log("Transaction created:", transaction);
+
+    const result = await dAppConnector.signAndExecuteTransaction({
+      signerAccountId: accountId,
+      transactionList: transactionToBase64String(transaction),
+    });
+
+    console.log("Allowance approval result:", result);
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    return result;
+  } catch (error) {
+    console.error("Allowance approval failed:", error);
+    throw error;
+  }
 }
 
-// //Create the transaction
-// const transaction = new AccountAllowanceApproveTransaction()
-//     .approveHbarAllowance(ownerAccount, spenderAccountId, Hbar.from(1));
+async function checkAllowance(userAccountId: string) {
+  const accountId = AccountId.fromString(userAccountId);
+  const hashTokenId = TokenId.fromString("0.0.6494054");
 
-// //Sign the transaction with the owner account key
-// const signTx = await transaction.sign(ownerAccountKey);
-
-// //Sign the transaction with the client operator private key and submit to a Hedera network
-// const txResponse = await signTx.execute(client);
-
-// //Request the receipt of the transaction
-// const receipt = await txResponse.getReceipt(client);
-
-// //Get the transaction consensus status
-// const transactionStatus = receipt.status;
-
-// console.log("The transaction consensus status is " +transactionStatus.toString());
-
-//v2.13.0
+  try {
+    console.log("Checking allowance for:", {
+      owner: accountId.toString(),
+      spender: contractId.toString(),
+      token: hashTokenId.toString(),
+    });
+  } catch (error) {
+    console.error("Failed to check allowance:", error);
+  }
+}

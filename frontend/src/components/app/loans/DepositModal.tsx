@@ -47,18 +47,14 @@ export function DepositModal({
   const handleDeposit = () => {
     const depositAmount = parseFloat(amount);
     if (depositAmount >= 1 && depositAmount <= maxDepositAmount) {
-      // Calculate shares (this would typically come from the contract)
-      const shares = depositAmount; // Simplified - in reality this would be calculated based on pool state
-
-      // Call the deposit function
+      const shares = 0;
       depositHash({
         amountToDeposit: depositAmount,
         shares: shares,
-        callData: "0x", // Empty call data for basic deposit
+        callData: "",
       });
 
       onDeposit(depositAmount);
-      // Removed onClose() - modal will stay open for user to see transaction status
     }
   };
 
@@ -68,15 +64,12 @@ export function DepositModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop with blur effect */}
       <div
         className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -84,12 +77,10 @@ export function DepositModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Deposit</h2>
         </div>
 
-        {/* Currency Selection */}
         <div className="mb-6">
           <p className="text-sm text-gray-600 mb-2">You will deposit</p>
           <div className="flex items-center gap-2">
@@ -117,7 +108,6 @@ export function DepositModal({
           </div>
         </div>
 
-        {/* Amount Input */}
         <div className="mb-6">
           <div className="relative">
             <input
@@ -132,7 +122,6 @@ export function DepositModal({
             </div>
           </div>
 
-          {/* USD Value */}
           <div className="text-center mt-2">
             <p className="text-sm text-gray-600">
               ${usdValue.toLocaleString()} ↑
@@ -140,7 +129,6 @@ export function DepositModal({
           </div>
         </div>
 
-        {/* Percentage Buttons */}
         <div className="mb-6">
           <div className="grid grid-cols-4 gap-2">
             {[25, 50, 75].map((percentage) => (
@@ -169,7 +157,6 @@ export function DepositModal({
           </div>
         </div>
 
-        {/* Available Balance */}
         <div className="mb-6">
           <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-600">Available Balance</span>
@@ -179,7 +166,6 @@ export function DepositModal({
           </div>
         </div>
 
-        {/* Warning Message */}
         <div className="mb-6">
           {isAmountBelowMinimum ? (
             <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
@@ -199,7 +185,6 @@ export function DepositModal({
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Back
