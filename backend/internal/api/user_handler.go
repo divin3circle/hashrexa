@@ -2,16 +2,20 @@ package api
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
 	"github.com/dgraph-io/badger/v4"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/go-chi/chi/v5"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
 	"github.com/imroc/req/v3"
@@ -183,7 +187,7 @@ func (u *UserHandler) HandleTokenizePortfolio(w http.ResponseWriter, r *http.Req
 
 	// mint and record tokenized assets
 	for _, asset := range allowedTokenizedAssets {
-		success, err := u.mintAndRecordTokenizedAsset(userAccountId, asset, amountToMint)
+		success, err := u.mintAndRecordTokenizedAsset(userAccountId, asset, amountToMint * 100) // dAAPL decimals
 		if err != nil {
 			http.Error(w, "Failed to mint and record tokenized asset", http.StatusInternalServerError)
 			return
@@ -438,6 +442,196 @@ func (u *UserHandler) HandleUpdateUserPersonalInformation(w http.ResponseWriter,
 	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated personal information successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
 }
 
+func (u *UserHandler) HandleGetUserPosition(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		fmt.Println("Missing user account ID")
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	position, err := getUserPosition(userAccountId)
+	if err != nil {
+		fmt.Println("Error getting user position: ", err.Error())
+		http.Error(w, "Failed to get user position", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]UserPosition{
+		"position": position,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode user position", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (u *UserHandler) HandleGetMarketPriceAnalysis(w http.ResponseWriter, r *http.Request) {
+	marketTopic, err := u.getLatestMessageFromTopic("0.0.6514924")
+	if err != nil {
+		http.Error(w, "Failed to get market topic", http.StatusInternalServerError)
+		return
+	}
+	var marketTopicData MarketTopic
+	err = json.Unmarshal([]byte(marketTopic), &marketTopicData)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal market topic", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string]MarketTopic{
+		"marketTopic": marketTopicData,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode market topic", http.StatusInternalServerError)
+		return
+	}
+}
+
+
+
+func getUserPosition(userEvmAddress string) (UserPosition, error){
+	var marketId = "0xc6c8d3eb24d61523202abed6d47eb676e7f2fef743503b857f8559390318bb10"
+	var newContractID, _ = hiero.ContractIDFromString("0.0.6532033")
+	err := godotenv.Load(".env")
+	if err != nil {
+		return UserPosition{}, err
+	}
+	 abiBytes, err := os.ReadFile("abi.json")
+	 if err != nil {
+		 return UserPosition{}, err
+	 }
+ 
+	 contractABI, err := abi.JSON(strings.NewReader(string(abiBytes)))
+	 if err != nil {
+		 return UserPosition{}, err
+	 }
+
+	operatorIdStr := os.Getenv("MY_ACCOUNT_ID")
+	operatorKeyStr := os.Getenv("MY_PRIVATE_KEY")
+	if operatorIdStr == "" || operatorKeyStr == "" {
+		return UserPosition{}, errors.New("must set operator account id and private key")
+	}
+
+	operatorId, _ := hiero.AccountIDFromString(operatorIdStr)
+	operatorKey, _ := hiero.PrivateKeyFromStringEd25519(operatorKeyStr)
+
+	client := hiero.ClientForTestnet()
+	client.SetOperator(operatorId, operatorKey)
+
+	marketIdBytes, _ := hex.DecodeString(marketId[2:])
+	var marketIdBytes32 [32]byte
+	copy(marketIdBytes32[:], marketIdBytes)
+	contractFunctionParameters := hiero.NewContractFunctionParameters()
+	contractFunctionParameters.AddBytes32(marketIdBytes32)
+	contractFunctionParameters.AddAddress(userEvmAddress)
+	transaction := hiero.NewContractCallQuery().
+	SetContractID(newContractID).
+	SetGas(600_000).
+	SetFunction("position", contractFunctionParameters)
+
+
+	contractFunctionResult, err := transaction.Execute(client)
+
+	if err != nil {
+		return UserPosition{}, err
+	}
+	 var result struct {
+        SupplyShares  *big.Int
+        BorrowShares  *big.Int
+        Collateral    *big.Int
+    }
+
+	err = contractABI.UnpackIntoInterface(&result, "position", contractFunctionResult.ContractCallResult)
+    if err != nil {
+        return UserPosition{}, err
+    }
+
+    supplyTokens := float64(result.SupplyShares.Uint64())
+    borrowTokens := float64(result.BorrowShares.Uint64())
+    collateralTokens := float64(result.Collateral.Uint64()) / 100
+
+	marketPosition, err := getMarketPosition()
+	if err != nil {
+		return UserPosition{}, err
+	}
+
+    return UserPosition{
+		SupplyShares: supplyTokens * (float64(marketPosition.TotalSupplyAssets.Int64()) / float64(marketPosition.TotalSupplyShares.Int64())),
+		BorrowShares: borrowTokens * (float64(marketPosition.TotalBorrowAssets.Int64()) / float64(marketPosition.TotalBorrowShares.Int64())),
+		Collateral: collateralTokens,
+	}, nil
+
+}
+
+func getMarketPosition() (MarketPosition, error) {
+	var marketId = "0xc6c8d3eb24d61523202abed6d47eb676e7f2fef743503b857f8559390318bb10"
+	var newContractID, _ = hiero.ContractIDFromString("0.0.6532033")
+	err := godotenv.Load(".env")
+	if err != nil {
+		return MarketPosition{}, err
+	}
+	abiBytes, err := os.ReadFile("abi.json")
+	if err != nil {
+		return MarketPosition{}, err
+	}
+	contractABI, err := abi.JSON(strings.NewReader(string(abiBytes)))
+	if err != nil {
+		return MarketPosition{}, err
+	}
+	operatorIdStr := os.Getenv("MY_ACCOUNT_ID")
+	operatorKeyStr := os.Getenv("MY_PRIVATE_KEY")
+	if operatorIdStr == "" || operatorKeyStr == "" {
+		return MarketPosition{}, errors.New("must set operator account id and private key")
+	}
+	operatorId, _ := hiero.AccountIDFromString(operatorIdStr)
+	operatorKey, _ := hiero.PrivateKeyFromStringEd25519(operatorKeyStr)
+	client := hiero.ClientForTestnet()
+	client.SetOperator(operatorId, operatorKey)
+
+	marketIdBytes, _ := hex.DecodeString(marketId[2:])
+	var marketIdBytes32 [32]byte
+	copy(marketIdBytes32[:], marketIdBytes)
+
+	contractFunctionParameters := hiero.NewContractFunctionParameters()
+	contractFunctionParameters.AddBytes32(marketIdBytes32)
+
+	transaction := hiero.NewContractCallQuery().
+	SetContractID(newContractID).
+	SetGas(600_000).
+	SetFunction("market", contractFunctionParameters)
+
+	contractFunctionResult, err := transaction.Execute(client)
+	if err != nil {
+		return MarketPosition{}, err
+	}
+
+	var result struct {
+		TotalSupplyAssets *big.Int
+		TotalSupplyShares *big.Int
+		TotalBorrowAssets *big.Int
+		TotalBorrowShares *big.Int
+		LastUpdate        *big.Int
+		Fee               *big.Int
+	}
+
+	err = contractABI.UnpackIntoInterface(&result, "market", contractFunctionResult.ContractCallResult)
+	if err != nil {
+		return MarketPosition{}, err
+	}
+
+	return MarketPosition{
+		TotalSupplyAssets: result.TotalSupplyAssets,
+		TotalSupplyShares: result.TotalSupplyShares,
+		TotalBorrowAssets: result.TotalBorrowAssets,
+		TotalBorrowShares: result.TotalBorrowShares,
+		LastUpdate: result.LastUpdate,
+		Fee: result.Fee,
+	}, nil
+}
+
+
 // func (u *UserHandler) HandleUpdatePriceAnalysis(w http.ResponseWriter, r *http.Request) {
 
 // }
@@ -496,28 +690,7 @@ func (u *UserHandler) UpdatePriceAnalysis(collateralTransacted, hashTransacted f
 	return true, nil
 }
 
-func (u *UserHandler) HandleGetMarketPriceAnalysis(w http.ResponseWriter, r *http.Request) {
-	marketTopic, err := u.getLatestMessageFromTopic("0.0.6514924")
-	if err != nil {
-		http.Error(w, "Failed to get market topic", http.StatusInternalServerError)
-		return
-	}
-	var marketTopicData MarketTopic
-	err = json.Unmarshal([]byte(marketTopic), &marketTopicData)
-	if err != nil {
-		http.Error(w, "Failed to unmarshal market topic", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(map[string]MarketTopic{
-		"marketTopic": marketTopicData,
-	})
-	if err != nil {
-		http.Error(w, "Failed to encode market topic", http.StatusInternalServerError)
-		return
-	}
-}
+
 
 func (u *UserHandler) getLatestMessageFromTopic(topicId string) (string, error) {
 	topicID, err := hiero.TopicIDFromString(topicId)

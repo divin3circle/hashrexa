@@ -1,6 +1,8 @@
 package api
 
 import (
+	"math/big"
+
 	"github.com/alpacahq/alpaca-trade-api-go/v3/alpaca"
 	"github.com/dgraph-io/badger/v4"
 	hiero "github.com/hiero-ledger/hiero-sdk-go/v2/sdk"
@@ -101,4 +103,19 @@ type MarketMessages struct {
 
 type MarketTopic struct {
 	Messages []MarketMessages `json:"messages"`
+}
+
+type UserPosition struct {
+	SupplyShares float64 `json:"supplyShares"`
+	BorrowShares float64 `json:"borrowShares"`
+	Collateral float64 `json:"collateral"`
+}
+
+type MarketPosition struct {
+	TotalSupplyAssets  *big.Int `json:"totalSupplyAssets"`
+	TotalSupplyShares *big.Int `json:"totalSupplyShares"`
+	TotalBorrowAssets *big.Int `json:"totalBorrowAssets"`
+	TotalBorrowShares *big.Int `json:"totalBorrowShares"`
+	LastUpdate        *big.Int `json:"lastUpdate"`
+	Fee               *big.Int `json:"fee"`
 }

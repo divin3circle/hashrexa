@@ -49,7 +49,7 @@ export function DepositModal({
     if (depositAmount >= 1 && depositAmount <= maxDepositAmount) {
       const shares = 0;
       depositHash({
-        amountToDeposit: depositAmount,
+        amountToDeposit: depositAmount * 10 ** 6,
         shares: shares,
         callData: "",
       });

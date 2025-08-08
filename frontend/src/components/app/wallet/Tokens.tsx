@@ -59,7 +59,7 @@ function TokensTable() {
               </tr>
             </thead>
             <tbody>
-              {data.map((token, index) => (
+              {data.slice(0, 2).map((token, index) => (
                 <tr
                   key={index}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"

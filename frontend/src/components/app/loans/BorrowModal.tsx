@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useBorrowHash } from "@/hooks/useMartket";
+import { toast } from "react-hot-toast";
 
 interface BorrowModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onBorrow: (amount: number) => void;
+  onBorrow?: (amount: number) => void;
   maxBorrowAmount: number;
   currentPrice: number;
 }
@@ -21,6 +23,8 @@ export function BorrowModal({
   const [selectedPercentage, setSelectedPercentage] = useState<number | null>(
     null
   );
+
+  const { borrowHash, isPending } = useBorrowHash();
 
   if (!isOpen) return null;
 
@@ -43,8 +47,27 @@ export function BorrowModal({
   const handleBorrow = () => {
     const borrowAmount = parseFloat(amount);
     if (borrowAmount > 0 && borrowAmount <= maxBorrowAmount) {
-      onBorrow(borrowAmount);
-      onClose();
+      const amountInTokenUnits = borrowAmount * 10 ** 2;
+
+      borrowHash(
+        {
+          amountToBorrow: amountInTokenUnits,
+          callData: "",
+        },
+        {
+          onSuccess: () => {
+            toast.success("Borrow successful!");
+            onClose();
+            if (onBorrow) {
+              onBorrow(borrowAmount);
+            }
+          },
+          onError: (error) => {
+            console.error("Borrow failed:", error);
+            toast.error("Borrow failed. Please try again.");
+          },
+        }
+      );
     }
   };
 
@@ -52,15 +75,12 @@ export function BorrowModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop with blur effect */}
       <div
         className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -68,14 +88,12 @@ export function BorrowModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Borrow</h2>
         </div>
 
-        {/* Currency Selection */}
         <div className="mb-6">
-          <p className="text-sm text-gray-600 mb-2">You will borrow</p>
+          <p className="text-sm text-gray-600 mb-2">Choose collateral token</p>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
               <img
@@ -101,7 +119,6 @@ export function BorrowModal({
           </div>
         </div>
 
-        {/* Amount Input */}
         <div className="mb-6">
           <div className="relative">
             <input
@@ -116,7 +133,6 @@ export function BorrowModal({
             </div>
           </div>
 
-          {/* USD Value */}
           <div className="text-center mt-2">
             <p className="text-sm text-gray-600">
               ${usdValue.toLocaleString()} ↑
@@ -124,7 +140,6 @@ export function BorrowModal({
           </div>
         </div>
 
-        {/* Percentage Buttons */}
         <div className="mb-6">
           <div className="grid grid-cols-4 gap-2">
             {[10, 30, 60].map((percentage) => (
@@ -153,7 +168,6 @@ export function BorrowModal({
           </div>
         </div>
 
-        {/* Warning Message */}
         <div className="mb-6">
           <div className="flex items-start gap-2 p-3 bg-yellow-50 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
@@ -164,9 +178,13 @@ export function BorrowModal({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+            disabled={isPending}
+          >
             Back
           </Button>
           <Button
@@ -174,11 +192,12 @@ export function BorrowModal({
             disabled={
               !amount ||
               parseFloat(amount) <= 0 ||
-              parseFloat(amount) > maxBorrowAmount
+              parseFloat(amount) > maxBorrowAmount ||
+              isPending
             }
             className="flex-1 bg-[#ff9494] hover:bg-[#ff8080] text-white"
           >
-            Borrow
+            {isPending ? "Borrowing..." : "Borrow"}
           </Button>
         </div>
       </div>

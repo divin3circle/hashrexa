@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useAssociate } from "./useAssociate";
+import { getAppleStockPrice } from "./useTokens";
 
 const MIRROR_NODE_URL =
   "https://testnet.mirrornode.hedera.com/api/v1/balances?account.id=";
@@ -85,14 +86,15 @@ async function getWalletTokens(
   const data = (await response.json()) as AccountBalancesResponse;
   const hash = MOCK_TOKENS[1];
   const hbar = MOCK_TOKENS[0];
+  const aapl = MOCK_TOKENS[2];
   console.log("Hash balance:", await getTokenBalance(hash.symbol, data));
 
   const hashBalance = (await getTokenBalance(hash.symbol, data)) / 10 ** 6;
   const hbarBalance = (await getTokenBalance(hbar.symbol, data)) / 10 ** 8;
-
+  const aaplBalance = (await getTokenBalance(aapl.symbol, data)) / 10 ** 2;
   const hashValueUSD = await getTokenValueUSD(hash.symbol);
   const hbarValueUSD = await getTokenValueUSD(hbar.symbol);
-
+  const aaplValueUSD = await getTokenValueUSD(aapl.symbol);
   const tokens = [
     {
       ...hash,
@@ -103,6 +105,11 @@ async function getWalletTokens(
       ...hbar,
       balance: hbarBalance,
       valueUSD: hbarValueUSD,
+    },
+    {
+      ...aapl,
+      balance: aaplBalance,
+      valueUSD: aaplValueUSD,
     },
   ];
 
@@ -145,6 +152,12 @@ async function getTokenBalance(
     );
   } else if (token === "HBAR") {
     return balanceQuery.balances[0].balance;
+  } else if (token === "AAPL") {
+    return (
+      balanceQuery.balances[0].tokens.find(
+        (token) => token.token_id === "0.0.6509511"
+      )?.balance || 0
+    );
   }
   return 0;
 }
@@ -154,6 +167,9 @@ async function getTokenValueUSD(token: string): Promise<number> {
     return 1.0;
   } else if (token === "HBAR") {
     return await getHbarPrice();
+  } else if (token === "AAPL") {
+    const price = await getAppleStockPrice();
+    return price;
   }
   return 0;
 }

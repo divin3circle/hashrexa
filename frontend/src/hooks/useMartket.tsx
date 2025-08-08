@@ -1,5 +1,5 @@
 import { useAppKitAccount } from "@reown/appkit/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   DAppConnector,
   HederaJsonRpcMethod,
@@ -15,14 +15,15 @@ import {
   TransactionId,
   AccountAllowanceApproveTransaction,
   TokenId,
+  EvmAddress,
 } from "@hashgraph/sdk";
-import { metadata, projectId } from "@/config";
+import { BACKEND_URL, metadata, projectId } from "@/config";
 import { toast } from "react-hot-toast";
 
-const contractId = ContractId.fromString("0.0.6492237");
+import { PoolPosition } from "@/types";
 
-export const encodedStruct =
-  "0x0000000000000000000000000000000000631766000000000000000000000000000000000000000000000000000000000000635c710535a028c31c3d169b74e0b4bb141e064cac2b5c2f4fc5416d96ac447388ead98c8eedb45d6ba820000000000000000000000000000000000000000000000000bef55718ad60000";
+const contractId = ContractId.fromString("0.0.6532033");
+const userEvmAddress = "0x0eab38daf1be107e0981c55bff252f351bd0ee7f";
 
 export function useDepositHash() {
   const { address } = useAppKitAccount();
@@ -33,7 +34,7 @@ export function useDepositHash() {
       callData: string;
     }) => {
       if (!address) throw new Error("No address");
-      await approveAllowance(params.amountToDeposit, address);
+      await approveAllowance(params.amountToDeposit, address, "0.0.6494054");
       return depositHashFunction(
         params.amountToDeposit,
         params.shares,
@@ -42,9 +43,6 @@ export function useDepositHash() {
       );
     },
     onSuccess: () => {
-      if (address) {
-        checkAllowance(address);
-      }
       toast.success("Deposit successful");
     },
     onError: (error) => {
@@ -53,6 +51,108 @@ export function useDepositHash() {
     },
   });
   return { depositHash, isPending };
+}
+
+export function useBorrowHash() {
+  const { address } = useAppKitAccount();
+  const { mutate: borrowHash, isPending } = useMutation({
+    mutationFn: async (params: {
+      amountToBorrow: number;
+      callData: string;
+    }) => {
+      if (!address) throw new Error("No address");
+      await approveAllowance(100, address, "0.0.6509511");
+      // wait for 5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return supplyAndBorrow(address, params.amountToBorrow, params.callData);
+    },
+    onSuccess: () => {
+      toast.success("Borrow successful");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Borrow failed");
+    },
+  });
+  return { borrowHash, isPending };
+}
+
+export function useUserPosition() {
+  const evmAddress = "0x0eab38daf1be107e0981c55bff252f351bd0ee7f";
+  console.log("evmAddress", evmAddress);
+  const { data: userPosition, isLoading } = useQuery({
+    queryKey: ["userPosition", evmAddress],
+    queryFn: () => getUserPosition(evmAddress),
+  });
+  return { userPosition, isLoading };
+}
+
+async function getUserPosition(
+  address: string | undefined
+): Promise<PoolPosition> {
+  if (!address) {
+    return {
+      supplyShares: 0,
+      borrowShares: 0,
+      collateral: 0,
+    };
+  }
+  const response = await fetch(`${BACKEND_URL}/user-position/${address}`);
+  const data = await response.json();
+  return data.position as PoolPosition;
+}
+
+export function useWithdrawCollateralHash() {
+  const { address } = useAppKitAccount();
+  const { mutate: withdrawCollateralHash, isPending } = useMutation({
+    mutationFn: async () => {
+      return withdrawCollateralHashFunction(address);
+    },
+    onSuccess: () => {
+      toast.success("Withdraw collateral successful");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Withdraw collateral failed");
+    },
+  });
+  return { withdrawCollateralHash, isPending };
+}
+
+async function withdrawCollateralHashFunction(address: string | undefined) {
+  if (!address) {
+    return;
+  }
+  const accountId = AccountId.fromString(address).toString();
+  const evmAddress = accountIdToEvmAddress(accountId);
+  console.log("evmAddress on withdraw", evmAddress);
+  const dAppConnector = new DAppConnector(
+    metadata,
+    LedgerId.TESTNET,
+    projectId,
+    Object.values(HederaJsonRpcMethod),
+    [],
+    [HederaChainId.Testnet]
+  );
+  await dAppConnector.init();
+  await dAppConnector.openModal();
+  const transactionId = TransactionId.generate(accountId);
+  const withdrawTx = new ContractExecuteTransaction()
+    .setTransactionId(transactionId)
+    .setContractId(contractId)
+    .setGas(15_000_000)
+    .setFunction(
+      "withdrawCollateral",
+      new ContractFunctionParameters()
+        .addUint256(100)
+        .addAddress(EvmAddress.fromString(userEvmAddress))
+        .addAddress(EvmAddress.fromString(userEvmAddress))
+    );
+
+  await dAppConnector.signAndExecuteTransaction({
+    signerAccountId: accountId,
+    transactionList: transactionToBase64String(withdrawTx),
+  });
 }
 
 async function depositHashFunction(
@@ -92,7 +192,6 @@ async function depositHashFunction(
     .setFunction(
       "supply",
       new ContractFunctionParameters()
-        .addBytes(new Uint8Array(Buffer.from(encodedStruct.slice(2), "hex")))
         .addUint256(amountToDeposit)
         .addUint256(shares)
         .addAddress(evmAddress)
@@ -105,22 +204,108 @@ async function depositHashFunction(
   });
 }
 
+async function supplyAndBorrow(
+  address: string | undefined,
+  amountToBorrow: number,
+  callData: string
+) {
+  if (!address) {
+    return;
+  }
+  const accountId = AccountId.fromString(address).toString();
+  const evmAddress = accountIdToEvmAddress(accountId);
+  console.log("evmAddress on supply", evmAddress);
+  const dAppConnector = new DAppConnector(
+    metadata,
+    LedgerId.TESTNET,
+    projectId,
+    Object.values(HederaJsonRpcMethod),
+    [],
+    [HederaChainId.Testnet]
+  );
+  await dAppConnector.init();
+
+  await dAppConnector.openModal();
+
+  // supply collateral function call
+  const transactionId = TransactionId.generate(accountId);
+  const supplyTx = new ContractExecuteTransaction()
+    .setTransactionId(transactionId)
+    .setContractId(contractId)
+    .setGas(15_000_000)
+    .setFunction(
+      "supplyCollateral",
+      new ContractFunctionParameters()
+        .addUint256(100)
+        .addAddress(EvmAddress.fromString(userEvmAddress))
+        .addBytes(new Uint8Array(Buffer.from(callData || "0x", "hex")))
+    );
+
+  await dAppConnector.signAndExecuteTransaction({
+    signerAccountId: accountId,
+    transactionList: transactionToBase64String(supplyTx),
+  });
+  console.log("supplyTx", supplyTx);
+
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  // Call borrow function after successful collateral supply
+  await borrowHashFunction(
+    accountId,
+    evmAddress,
+    amountToBorrow,
+    dAppConnector
+  );
+}
+
+async function borrowHashFunction(
+  accountId: string,
+  evmAddress: string,
+  amountToBorrow: number,
+  dAppConnector: DAppConnector
+) {
+  console.log("evmAddress on borrow", evmAddress);
+  // borrow hash contract call
+  const borrowTransactionId = TransactionId.generate(accountId);
+  const borrowTx = new ContractExecuteTransaction()
+    .setTransactionId(borrowTransactionId)
+    .setContractId(contractId)
+    .setGas(15_000_000)
+    .setFunction(
+      "borrow",
+      new ContractFunctionParameters()
+        .addUint256(1000000)
+        .addUint256(0)
+        .addAddress(EvmAddress.fromString(userEvmAddress))
+        .addAddress(EvmAddress.fromString(userEvmAddress))
+    );
+
+  await dAppConnector.signAndExecuteTransaction({
+    signerAccountId: accountId,
+    transactionList: transactionToBase64String(borrowTx),
+  });
+}
+
 function accountIdToEvmAddress(accountIdString: string): string {
   const accountId = AccountId.fromString(accountIdString);
   const evmAddress = accountId.toSolidityAddress();
   return `0x${evmAddress}`;
 }
 
-async function approveAllowance(amount: number, userAccountId: string) {
+async function approveAllowance(
+  amount: number,
+  userAccountId: string,
+  tokenId: string
+) {
   try {
     const accountId = AccountId.fromString(userAccountId).toString();
-    const hashTokenId = TokenId.fromString("0.0.6494054");
+    const hashTokenId = TokenId.fromString(tokenId);
 
     console.log("Approving allowance:", {
       tokenId: hashTokenId.toString(),
       owner: accountId,
       spender: contractId.toString(),
-      amount: 2 * 10 ** 6,
+      amount: amount / 10 ** 6,
     });
 
     const dAppConnector = new DAppConnector(
@@ -140,7 +325,7 @@ async function approveAllowance(amount: number, userAccountId: string) {
         hashTokenId,
         accountId,
         contractId.toString(),
-        amount * 10 ** 6
+        amount
       )
       .setTransactionId(TransactionId.generate(accountId));
 
@@ -159,20 +344,5 @@ async function approveAllowance(amount: number, userAccountId: string) {
   } catch (error) {
     console.error("Allowance approval failed:", error);
     throw error;
-  }
-}
-
-async function checkAllowance(userAccountId: string) {
-  const accountId = AccountId.fromString(userAccountId);
-  const hashTokenId = TokenId.fromString("0.0.6494054");
-
-  try {
-    console.log("Checking allowance for:", {
-      owner: accountId.toString(),
-      spender: contractId.toString(),
-      token: hashTokenId.toString(),
-    });
-  } catch (error) {
-    console.error("Failed to check allowance:", error);
   }
 }

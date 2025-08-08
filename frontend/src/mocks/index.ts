@@ -61,6 +61,13 @@ export const MOCK_TOKENS: Token[] = [
     token_id: "0.0.6494054",
     decimals: 6,
   },
+  {
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    icon: STOCK_LOGOS.AAPL,
+    token_id: "0.0.6509511",
+    decimals: 2,
+  },
 ];
 
 export const TOKENIZED_ASSETS: FullTokenizedAssets[] = [

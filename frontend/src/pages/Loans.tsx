@@ -12,6 +12,8 @@ import dAAPL from "../../public/apple.png";
 import { getAppleStockPrice, useTokens } from "@/hooks/useTokens";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useUserPosition, useWithdrawCollateralHash } from "@/hooks/useMartket";
+import { useWalletTokens } from "@/hooks/usePortfolio";
 
 function Loans() {
   const {
@@ -19,6 +21,10 @@ function Loans() {
     isLoading: isLoadingTokenizedAssets,
     error: errorTokenizedAssets,
   } = useTokens();
+  const { withdrawCollateralHash, isPending: isWithdrawingCollateral } =
+    useWithdrawCollateralHash();
+  const { userPosition } = useUserPosition();
+  const { data: walletTokens } = useWalletTokens();
 
   const [applePrice, setApplePrice] = useState<number>(0);
   const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
@@ -27,6 +33,7 @@ function Loans() {
   useEffect(() => {
     const fetchApplePrice = async () => {
       const price = await getAppleStockPrice();
+      console.log("price", price);
       setApplePrice(price);
     };
     fetchApplePrice();
@@ -56,7 +63,11 @@ function Loans() {
     );
   }
 
-  const maxBorrowAmount = tokenizedAssets[0]?.amount * 0.86 || 0;
+  const maxBorrowAmount = (walletTokens?.[2].balance || 0) * 0.86;
+  const loanPercentage =
+    (userPosition?.borrowShares || 0) / 1000000 / maxBorrowAmount;
+
+  console.log("loanPercentage", loanPercentage);
 
   return (
     <div className="max-w-6xl mx-auto px-2">
@@ -92,14 +103,14 @@ function Loans() {
                 ) : (
                   <div className="mt-4 flex flex-col gap-2">
                     <h1 className="text-4xl font-semibold">
-                      {(tokenizedAssets[0].amount * 0.86).toFixed(2)}
+                      {((walletTokens?.[2].balance || 0) * 0.86).toFixed(2)}
                       <span className="text-xl text-gray-500"> dAAPL</span>
                     </h1>
                     <p className="text-sm text-gray-500">
                       $
                       {(
-                        applePrice *
-                        tokenizedAssets[0].amount *
+                        (walletTokens?.[2].valueUSD || 0) *
+                        (walletTokens?.[2].balance || 0) *
                         0.86
                       ).toLocaleString("en-US", {
                         minimumFractionDigits: 2,
@@ -112,21 +123,32 @@ function Loans() {
               <div className="h-[165px] bg-[#fffdf6] border border-gray-200 p-4 rounded-3xl w-full flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex flex-col w-2/3">
-                    <p className="text-base font-semibold">Loan Health</p>
-                    <div className="flex gap-2 flex-col">
-                      <h1 className={`text-3xl text-red-500`}>
-                        0<span className="text-2xl text-gray-500">%</span>
+                    <p className="text-base font-semibold">Borrowed Amount</p>
+                    <div className="flex gap-2 flex-col justify-between items-start">
+                      <h1
+                        className={`text-2xl text-[#ff9494] flex flex-col mt-4`}
+                      >
+                        {((userPosition?.borrowShares || 0) / 1000000).toFixed(
+                          2
+                        )}{" "}
+                        HASH
+                        <span className="text-sm text-gray-500">
+                          Approx. $
+                          {(
+                            (userPosition?.borrowShares || 0) / 1000000
+                          ).toFixed(2)}
+                        </span>
                       </h1>
                       <button
                         disabled
-                        className="bg-primary text-sm text-white px-2 py-1.5 w-2/3 rounded-full mt-10"
+                        className="bg-primary text-sm text-white px-2 py-1.5 w-2/3 rounded-full mt-2"
                       >
                         Repay
                       </button>
                     </div>
                   </div>
                   <div className="h-[140px] w-1/4 md:w-1/3">
-                    <LiquidationIndicator percentage={0} />
+                    <LiquidationIndicator percentage={loanPercentage} />
                   </div>
                 </div>
               </div>
@@ -186,18 +208,25 @@ function Loans() {
                   <FaWallet className="text-primary text-xl" />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-base font-semibold">Claimable HASH</p>
+                  <p className="text-base font-semibold">Collateral Locked</p>
                   <p className="text-xs text-gray-500">
-                    Interest accrued since last claim
+                    Amount of collateral locked
                   </p>
                 </div>
               </div>
               <div className="flex flex-col mt-8 justify-between">
-                <p className="text-2xl font-semibold">16.75 HASH</p>
-                <p className="text-sm text-gray-500">Approx. $16.50</p>
+                <p className="text-2xl font-semibold">
+                  {userPosition?.collateral} dAAPL
+                </p>
+                <p className="text-sm text-gray-500">
+                  Approx. ${(userPosition?.collateral || 0) * applePrice}
+                </p>
               </div>
-              <button className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10">
-                Claim
+              <button
+                disabled
+                className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10 opacity-50 cursor-not-allowed"
+              >
+                Unlock Collateral
               </button>
             </div>
             <div className="bg-[#fffdf6] border border-gray-200 rounded-3xl p-3 h-[240px] w-full">
@@ -213,18 +242,27 @@ function Loans() {
                 </div>
               </div>
               <div className="flex flex-col mt-8 justify-between">
-                <p className="text-2xl font-semibold">1,066.75 HASH</p>
-                <p className="text-sm text-gray-500">Approx. $1,066.50</p>
+                <p className="text-2xl font-semibold">
+                  {((userPosition?.supplyShares || 0) / 1000000).toFixed(2)}{" "}
+                  HASH
+                </p>
+                <p className="text-sm text-gray-500">
+                  Approx. ${(userPosition?.supplyShares || 0) * 1}
+                </p>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <button
                   onClick={() => setIsDepositModalOpen(true)}
-                  className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10 hover:bg-[#ff9494] transition-colors"
+                  className="bg-primary text-sm text-white px-4 py-1.5 w-full rounded-full mt-10 border border-primary  cursor-pointer transition-colors"
                 >
                   Deposit
                 </button>
-                <button className="bg-white text-sm text-primary px-4 py-1.5 w-full rounded-full mt-10 border border-gray-200">
-                  Withdraw
+                <button
+                  onClick={() => withdrawCollateralHash()}
+                  disabled={isWithdrawingCollateral}
+                  className="bg-white text-sm text-primary px-4 py-1.5 w-full rounded-full mt-10 border border-primary cursor-pointer "
+                >
+                  {isWithdrawingCollateral ? "Withdrawing..." : "Withdraw"}
                 </button>
               </div>
             </div>
@@ -233,15 +271,15 @@ function Loans() {
         </div>
         {/* end rhs */}
       </div>
-      <p className="text-center text-gray-400 text-xs mt-8 flex flex-col md:flex-row items-center justify-center gap-2">
+      <p className="text-center flex-col text-gray-400 text-xs mt-8 flex md:flex-row items-center justify-center gap-2">
         Market Testnet Contract:{" "}
         <a
           className="text-primary underline"
-          href="https://hashscan.io/testnet/contract/0.0.6492237"
+          href="https://hashscan.io/testnet/contract/0.0.6532033"
           target="_blank"
           rel="noopener noreferrer"
         >
-          0x86124e1C6b96ECa5903Be011A4195E64347E9F6a
+          0.0.6532033
         </a>
       </p>
       <BorrowModal

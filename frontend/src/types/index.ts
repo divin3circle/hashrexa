@@ -157,3 +157,9 @@ export interface MarketMessage {
 export interface MarketTopic {
   messages: MarketMessage[];
 }
+
+export interface PoolPosition {
+  supplyShares: number;
+  borrowShares: number;
+  collateral: number;
+}
