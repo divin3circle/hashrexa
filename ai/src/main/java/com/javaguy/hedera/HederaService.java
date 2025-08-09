@@ -137,6 +137,27 @@ public class HederaService {
         }
     }
 
+    public String createTopic(String memo) {
+        try {
+            logger.info("Creating HCS topic: {}", memo);
+            TopicCreateTransaction tx = new TopicCreateTransaction();
+            if (memo != null && !memo.isBlank()) {
+                tx.setTopicMemo(memo);
+            }
+            TransactionResponse response = tx.execute(client);
+            TransactionReceipt receipt = response.getReceipt(client);
+            if (receipt.topicId == null) {
+                throw new IllegalStateException("Topic ID is null in receipt");
+            }
+            String topicId = receipt.topicId.toString();
+            logger.info("Created topic: {}", topicId);
+            return topicId;
+        } catch (Exception e) {
+            logger.error("Failed to create topic: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create topic: " + e.getMessage(), e);
+        }
+    }
+
     // Helper records for response data
     public record BalanceInfo(String hbarBalance) {}
     public record AccountInfo(String accountId, String publicKey, String privateKey) {}
