@@ -30,11 +30,12 @@ public class BlockchainTools {
             BlockchainModels.OperationResult result = hederaService.createToken(request);
 
             if (result.success()) {
-                return String.format("✅ Token created successfully!\n" +
-                                "Message: %s\n" +
-                                "Transaction ID: %s\n" +
-                                "You can verify this transaction on HashScan: https://hashscan.io/testnet/transaction/%s",
-                        result.message(), result.transactionId(), result.transactionId());
+                logger.info("Token creation tx on HashScan: https://hashscan.io/testnet/transaction/{}", result.transactionId());
+                return String.format(
+                        "Token created. Tx: %s\n%s",
+                        result.transactionId(),
+                        result.message() != null ? result.message() : ""
+                ).trim();
             } else {
                 logger.error("Token creation failed: {}", result.error());
                 return "❌ Failed to create token: " + result.error();
@@ -57,11 +58,12 @@ public class BlockchainTools {
             BlockchainModels.OperationResult result = hederaService.transferTokens(request);
 
             if (result.success()) {
-                return String.format("✅ Transfer completed!\n" +
-                                "Message: %s\n" +
-                                "Transaction ID: %s\n" +
-                                "View on HashScan: https://hashscan.io/testnet/transaction/%s",
-                        result.message(), result.transactionId(), result.transactionId());
+                logger.info("Transfer tx on HashScan: https://hashscan.io/testnet/transaction/{}", result.transactionId());
+                return String.format(
+                        "Transfer complete. Tx: %s\n%s",
+                        result.transactionId(),
+                        result.message() != null ? result.message() : ""
+                ).trim();
             } else {
                 logger.error("Token transfer failed: {}", result.error());
                 return "❌ Transfer failed: " + result.error();
@@ -82,9 +84,10 @@ public class BlockchainTools {
             BlockchainModels.OperationResult result = hederaService.getAccountBalance(request);
 
             if (result.success()) {
-                return String.format("✅ Balance retrieved for account %s:\n%s\n" +
-                                "View account details: https://hashscan.io/testnet/account/%s",
-                        accountId, result.message(), accountId);
+                logger.info("Account on HashScan: https://hashscan.io/testnet/account/{}", accountId);
+                // Prefer concise, user-friendly output
+                return String.format("Balance (HBAR) for %s: %s",
+                        accountId, result.message() != null ? result.message().replace("Account "+accountId+" has ", "") : "unknown");
             } else {
                 logger.error("Balance check failed for account {}: {}", accountId, result.error());
                 return String.format("❌ Failed to get balance for account %s: %s", accountId, result.error());
@@ -103,16 +106,13 @@ public class BlockchainTools {
 
             if (result.success()) {
                 if (result.data() instanceof HederaService.AccountInfo accountInfo) {
-                    return String.format("✅ New account created!\n" +
-                                    "Account ID: %s\n" +
-                                    "Transaction ID: %s\n" +
-                                    "⚠️ IMPORTANT: Save the private key securely!\n" +
-                                    "Private Key: %s\n" +
-                                    "View account: https://hashscan.io/testnet/account/%s",
-                            accountInfo.accountId(), result.transactionId(),
-                            accountInfo.privateKey(), accountInfo.accountId());
+                    logger.info("New account on HashScan: https://hashscan.io/testnet/account/{}", accountInfo.accountId());
+                    return String.format(
+                            "New account created.\nAccount ID: %s\nTransaction ID: %s\nSave the private key securely: %s",
+                            accountInfo.accountId(), result.transactionId(), accountInfo.privateKey()
+                    );
                 } else {
-                    return "✅ " + result.message() + "\nTransaction ID: " + result.transactionId();
+                    return ("Success: " + result.message() + "\nTx: " + result.transactionId()).trim();
                 }
             } else {
                 logger.error("Account creation failed: {}", result.error());

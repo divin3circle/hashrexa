@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>HashRexa Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root { --bg:#0b1020; --panel:#141a2e; --muted:#8b93a7; --accent:#6ee7b7; --text:#e5e7eb; }
+        *{ box-sizing:border-box; }
+        body { margin:0; background:var(--bg); color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto; }
+        .container { height:100dvh; display:grid; grid-template-rows: auto 1fr auto; }
+        header { padding:1rem 1.25rem; border-bottom:1px solid #1f2942; display:flex; align-items:center; gap:.75rem; }
+        header h1 { font-size:1rem; margin:0; font-weight:600; }
+        header select, header input { background:#0f1530; border:1px solid #253052; color:var(--text); border-radius:8px; padding:.4rem .6rem; }
+        main { padding:1rem; overflow:auto; }
+        .chat { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:.75rem; }
+        .msg { display:flex; gap:.75rem; align-items:flex-start; }
+        .msg .bubble { background:var(--panel); border:1px solid #263250; padding:.75rem .9rem; border-radius:12px; max-width:80%; white-space:pre-wrap; }
+        .msg.user { justify-content:flex-end; }
+        .msg.user .bubble { background:#1e2a49; border-color:#2b3a63; }
+        .meta { font-size:.75rem; color:var(--muted); margin:.2rem 0 .1rem; }
+        footer { border-top:1px solid #1f2942; padding:.6rem; background:#0c132b; }
+        .input { max-width:900px; margin:0 auto; display:flex; gap:.5rem; }
+        textarea { flex:1; resize:none; min-height:46px; max-height:160px; padding:.7rem .8rem; border-radius:10px; border:1px solid #253052; background:#0f1530; color:var(--text); }
+        button { padding:.7rem 1rem; border:none; border-radius:10px; background:var(--accent); color:#0b1020; font-weight:700; cursor:pointer; }
+        .row { display:flex; gap:.5rem; align-items:center; }
+        .row input { background:#0f1530; border:1px solid #253052; color:var(--text); border-radius:8px; padding:.4rem .6rem; width:220px; }
+        .toolbar { display:flex; gap:.5rem; align-items:center; }
+        a { color:var(--accent); text-decoration:none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>HashRexa Chat</h1>
+        <div class="toolbar">
+            <label>Mode</label>
+            <select id="mode">
+                <option value="blockchain">Blockchain</option>
+                <option value="loan">Loan</option>
+            </select>
+            <div class="row" id="userRow" style="display:none;">
+                <label>User</label>
+                <input id="userId" placeholder="0.0.5800339" />
+            </div>
+            <a href="/">Home</a>
+        </div>
+    </header>
+
+    <main>
+        <div id="chat" class="chat"></div>
+    </main>
+
+    <footer>
+        <div class="input">
+            <textarea id="message" placeholder="Type a message... (e.g., What's the balance of 0.0.5800339?)"></textarea>
+            <button id="send">Send</button>
+        </div>
+    </footer>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const modeEl = document.getElementById('mode');
+const userRow = document.getElementById('userRow');
+const userIdEl = document.getElementById('userId');
+const msgEl = document.getElementById('message');
+const sendBtn = document.getElementById('send');
+
+modeEl.addEventListener('change', () => {
+  userRow.style.display = modeEl.value === 'loan' ? 'flex' : 'none';
+});
+
+function addMessage(role, text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = role === 'user' ? 'You' : 'Assistant';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  if (role === 'user') {
+    wrap.appendChild(bubble);
+  } else {
+    wrap.appendChild(bubble);
+  }
+  chatEl.appendChild(meta);
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+async function send() {
+  const mode = modeEl.value;
+  const message = msgEl.value.trim();
+  const userId = userIdEl.value.trim();
+  if (!message) return;
+  addMessage('user', message);
+  msgEl.value = '';
+  // Non-streaming simple POST
+  const data = new URLSearchParams();
+  data.append('mode', mode);
+  data.append('message', message);
+  if (mode === 'loan' && userId) data.append('userId', userId);
+  try {
+    const res = await fetch('/ui/chat-send', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:data });
+    const json = await res.json();
+    const reply = (json && json.reply) ? json.reply : '(no content)';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = 'Assistant';
+    const wrap = document.createElement('div');
+    wrap.className = 'msg assistant';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = renderText(reply + (json && json.intent ? `\n\nIntent: ${json.intent}` : ''));
+    wrap.appendChild(bubble);
+    chatEl.appendChild(meta);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  } catch (e) {
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = 'Assistant';
+    const wrap = document.createElement('div');
+    wrap.className = 'msg assistant';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = 'Error: ' + e.message;
+    wrap.appendChild(bubble);
+    chatEl.appendChild(meta);
+    chatEl.appendChild(wrap);
+  }
+}
+
+function renderText(text){
+  const esc = (s)=> s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  if (!text) return '';
+  let t = esc(text);
+  // strip markdown bold **...**
+  t = t.replace(/\*\*(.*?)\*\*/g, '$1');
+  // strip markdown italics *...*
+  t = t.replace(/\*(.*?)\*/g, '$1');
+  // code ticks `...`
+  t = t.replace(/`([^`]+)`/g, '$1');
+  // newlines to <br>
+  t = t.replace(/\n/g,'<br>');
+  return t;
+}
+
+sendBtn.addEventListener('click', send);
+msgEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+</script>
+</body>
+</html>
+
+
