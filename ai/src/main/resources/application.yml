@@ -15,8 +15,8 @@ spring:
 hedera:
   network: testnet
   operator:
-    account-id: ${ACCOUNT_ID}
-    private-key: ${HEDERA_PRIVATE_KEY}
+    account-id:
+    private-key:
 
 management:
   endpoints:
@@ -34,3 +34,6 @@ logging:
 
 server:
   port: 8082
+
+backend:
+   base-url: http://localhost:8080
