@@ -15,8 +15,8 @@ spring:
 hedera:
   network: testnet
   operator:
-    account-id: 0.0.5864497
-    private-key: 302e020100300506032b657004220420fe3f377bde6b8cf2445d004837c78816d2f2181302e721c6eefee0e8e8e0036e
+    account-id:
+    private-key:
 
 management:
   endpoints:
