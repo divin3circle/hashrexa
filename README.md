@@ -102,7 +102,7 @@ flowchart LR
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/hashrexa.git
+git clone https://github.com/divin3circle/hashrexa
 cd hashrexa
 ```
 
