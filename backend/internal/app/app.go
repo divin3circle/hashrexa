@@ -52,7 +52,7 @@ func NewApplication() (*Application, error) {
 		BaseURL:   "https://paper-api.alpaca.markets",
 	})
 
-	db, err := store.Open("/tmp/badgerdb")
+	db, err := store.Open("/tmp/badgerdb3")
 	if err != nil {
 		return nil, err
 	}
