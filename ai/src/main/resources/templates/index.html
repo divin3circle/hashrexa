@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>HashRexa AI - Demo UI</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial; margin: 2rem; }
+        h1 { margin-bottom: 1rem; }
+        section { border: 1px solid #e5e7eb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; align-items: center; }
+        form label { font-weight: 600; }
+        input, button { padding: .5rem .6rem; }
+        button { grid-column: 1 / -1; width: max-content; }
+        small { color: #6b7280; }
+    </style>
+    <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="HashRexa AI Demo UI" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+</head>
+<body>
+<h1>HashRexa AI - Demo UI</h1>
+
+<section>
+    <h2>Register User</h2>
+    <form action="/ui/register" method="post">
+        <label for="accountId">Hedera Account ID</label>
+        <input id="accountId" name="accountId" placeholder="0.0.xxxxx" required />
+
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" placeholder="user@example.com" required />
+
+        <label for="topicId">HCS Topic ID</label>
+        <input id="topicId" name="topicId" placeholder="0.0.yyyyyy" required />
+
+        <button type="submit">Register</button>
+        <small>Calls Go: POST /auth/register/{userAccountId}/{topicId}</small>
+    </form>
+    <p><small>Note: AI reads data from Go; make sure Go backend is running.</small></p>
+</section>
+
+<section>
+    <h2>Create HCS Topic</h2>
+    <form action="/ui/create-topic" method="post">
+        <label for="memo">Topic Memo (optional)</label>
+        <input id="memo" name="memo" placeholder="User activity log" />
+        <button type="submit">Create Topic</button>
+        <small>Uses Hedera SDK (Java) to create a topic; copy Topic ID and use during registration.</small>
+    </form>
+</section>
+
+<section>
+    <h2>Get Portfolio</h2>
+    <form action="/ui/portfolio" method="post">
+        <label for="pAccountId">Hedera Account ID</label>
+        <input id="pAccountId" name="accountId" placeholder="0.0.xxxxx" required />
+
+        <button type="submit">Fetch Portfolio</button>
+        <small>Calls Go: GET /portfolio/{userAccountId}</small>
+    </form>
+    <p><small>AI composes available collateral and tokenized assets.</small></p>
+    
+    <h3>Borrowing Power</h3>
+    <form action="/ui/borrowing-power" method="post">
+        <label for="bAccountId">Hedera Account ID</label>
+        <input id="bAccountId" name="accountId" placeholder="0.0.xxxxx" required />
+        <button type="submit">Calculate</button>
+        <small>Uses AI logic in Spring to compute LTV tiers</small>
+    </form>
+</section>
+
+<section>
+    <h2>Tokenize Portfolio</h2>
+    <form action="/ui/tokenize" method="post">
+        <label for="tAccountId">Hedera Account ID</label>
+        <input id="tAccountId" name="accountId" placeholder="0.0.xxxxx" required />
+        <button type="submit">Tokenize</button>
+        <small>Calls Go: GET /tokenize-portfolio/{userAccountId}</small>
+    </form>
+</section>
+
+<section>
+    <h2>Blockchain Operations</h2>
+    <h3>Check Balance</h3>
+    <form action="/ui/check-balance" method="post">
+        <label for="balAccountId">Hedera Account ID</label>
+        <input id="balAccountId" name="accountId" placeholder="0.0.xxxxx" required />
+        <button type="submit">Check</button>
+        <small>Uses Java Hedera SDK via BlockchainTools</small>
+    </form>
+
+    <h3>Create Account</h3>
+    <form action="/ui/create-account" method="post">
+        <button type="submit">Create Account</button>
+        <small>Generates a new account (displays keys); store securely</small>
+    </form>
+
+    <h3>Create Token</h3>
+    <form action="/ui/create-token" method="post">
+        <label for="tName">Name</label>
+        <input id="tName" name="name" placeholder="MyToken" required />
+        <label for="tSymbol">Symbol</label>
+        <input id="tSymbol" name="symbol" placeholder="MTK" required />
+        <label for="tSupply">Initial Supply</label>
+        <input id="tSupply" name="initialSupply" type="number" min="1" value="1000" required />
+        <label for="tDecimals">Decimals</label>
+        <input id="tDecimals" name="decimals" type="number" min="0" value="2" />
+        <button type="submit">Create Token</button>
+    </form>
+
+    <h3>Transfer Tokens</h3>
+    <form action="/ui/transfer" method="post">
+        <label for="ttTokenId">Token ID</label>
+        <input id="ttTokenId" name="tokenId" placeholder="0.0.xxxxx" required />
+        <label for="ttTo">To Account</label>
+        <input id="ttTo" name="toAccountId" placeholder="0.0.yyyyy" required />
+        <label for="ttAmt">Amount</label>
+        <input id="ttAmt" type="number" name="amount" min="1" value="10" required />
+        <button type="submit">Transfer</button>
+    </form>
+</section>
+
+<section>
+    <h2>AI Chat</h2>
+    <h3>Blockchain Chat</h3>
+    <form action="/ui/chat-blockchain" method="post">
+        <label for="cbMsg">Message</label>
+        <input id="cbMsg" name="message" placeholder="What's the balance of 0.0.x?" required />
+        <button type="submit">Send</button>
+        <small>Uses ChatClient with BlockchainTools</small>
+    </form>
+
+    <h3>Loan Chat</h3>
+    <form action="/ui/chat-loan" method="post">
+        <label for="clUser">User ID</label>
+        <input id="clUser" name="userId" placeholder="0.0.xxxxx" required />
+        <label for="clMsg">Message</label>
+        <input id="clMsg" name="message" placeholder="What is my borrowing power?" required />
+        <button type="submit">Send</button>
+        <small>Uses LoanAssistanceService for intent-aware responses</small>
+    </form>
+</section>
+
+</body>
+</html>
+
+
