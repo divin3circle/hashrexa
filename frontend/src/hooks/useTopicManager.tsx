@@ -69,6 +69,32 @@ export function useTopicExists() {
   };
 }
 
+export function useUserLoanStatus() {
+  const { address } = useAppKitAccount();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["userLoanStatus", address],
+    queryFn: () => getUserLoanStatus(address),
+  });
+  return {
+    userLoanStatus: data,
+    isLoading,
+    error,
+  };
+}
+
+async function getUserLoanStatus(address: string | undefined) {
+  if (!address) {
+    return;
+  }
+  const data = await fetch(`${BACKEND_URL}/user-loan-status/${address}`);
+  if (!data.ok) {
+    console.error("Failed to get user loan status:", data.status);
+    return;
+  }
+  const json = await data.json();
+  return json.loanStatus;
+}
+
 async function checkTopicExists(
   accountId: string | undefined
 ): Promise<boolean> {
@@ -133,7 +159,6 @@ export async function createTopic(
 
   await dAppConnector.openModal();
 
-  // Generate a transaction ID and set it on the transaction
   const signer = dAppConnector.getSigner(AccountId.fromString(accountId));
   const transactionId = TransactionId.generate(accountId);
   const topicTx = new TopicCreateTransaction()

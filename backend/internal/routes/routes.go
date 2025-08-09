@@ -41,5 +41,7 @@ func SetUpRoutes(app *app.Application) *chi.Mux {
 	r.Post("/personal-information/{userAccountId}", app.UserHandler.HandleUpdateUserPersonalInformation)
 	r.Get("/market-price-analysis", app.UserHandler.HandleGetMarketPriceAnalysis)
 	r.Get("/user-position/{userAccountId}", app.UserHandler.HandleGetUserPosition)
+	r.Post("/user-loan-status/{userAccountId}", app.UserHandler.HandleUpdateUserLoanStatus)
+	r.Get("/user-loan-status/{userAccountId}", app.UserHandler.HandleGetUserLoanStatus)
 	return r
 }

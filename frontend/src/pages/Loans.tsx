@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUserPosition, useWithdrawCollateralHash } from "@/hooks/useMartket";
 import { useWalletTokens } from "@/hooks/usePortfolio";
+import { usePersonalInformation } from "@/hooks/useUserPersonalInformation";
 
 function Loans() {
   const {
@@ -25,6 +26,7 @@ function Loans() {
     useWithdrawCollateralHash();
   const { userPosition } = useUserPosition();
   const { data: walletTokens } = useWalletTokens();
+  const { data: personalInformation } = usePersonalInformation();
 
   const [applePrice, setApplePrice] = useState<number>(0);
   const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
@@ -65,7 +67,7 @@ function Loans() {
 
   const maxBorrowAmount = (walletTokens?.[2].balance || 0) * 0.86;
   const loanPercentage =
-    (userPosition?.borrowShares || 0) / 1000000 / maxBorrowAmount;
+    (userPosition?.borrowShares || 0) / 10000 / maxBorrowAmount;
 
   console.log("loanPercentage", loanPercentage);
 
@@ -74,7 +76,10 @@ function Loans() {
       <Navbar />
       <div className="my-4">
         <h1 className="text-2xl font-semibold text-primary ">
-          Welcome back <span className="text-[#ff9494]">Sylus</span>
+          Welcome back{" "}
+          <span className="text-[#ff9494]">
+            {personalInformation?.username}
+          </span>
         </h1>
         <p className="text-sm text-gray-500">
           Do more with your stock portfolio

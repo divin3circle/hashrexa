@@ -21,6 +21,7 @@ import { BACKEND_URL, metadata, projectId } from "@/config";
 import { toast } from "react-hot-toast";
 
 import { PoolPosition } from "@/types";
+import axios from "axios";
 
 const contractId = ContractId.fromString("0.0.6532033");
 const userEvmAddress = "0x0eab38daf1be107e0981c55bff252f351bd0ee7f";
@@ -66,7 +67,8 @@ export function useBorrowHash() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return supplyAndBorrow(address, params.amountToBorrow, params.callData);
     },
-    onSuccess: () => {
+    onSuccess: async (_, params) => {
+      await sendLoanStatus(address, 100, params.amountToBorrow, 0.0);
       toast.success("Borrow successful");
     },
     onError: (error) => {
@@ -79,7 +81,6 @@ export function useBorrowHash() {
 
 export function useUserPosition() {
   const evmAddress = "0x0eab38daf1be107e0981c55bff252f351bd0ee7f";
-  console.log("evmAddress", evmAddress);
   const { data: userPosition, isLoading } = useQuery({
     queryKey: ["userPosition", evmAddress],
     queryFn: () => getUserPosition(evmAddress),
@@ -249,7 +250,6 @@ async function supplyAndBorrow(
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  // Call borrow function after successful collateral supply
   await borrowHashFunction(
     accountId,
     evmAddress,
@@ -261,7 +261,7 @@ async function supplyAndBorrow(
 async function borrowHashFunction(
   accountId: string,
   evmAddress: string,
-  amountToBorrow: number,
+  _amountToBorrow: number,
   dAppConnector: DAppConnector
 ) {
   console.log("evmAddress on borrow", evmAddress);
@@ -345,4 +345,38 @@ async function approveAllowance(
     console.error("Allowance approval failed:", error);
     throw error;
   }
+}
+
+async function sendLoanStatus(
+  address: string | undefined,
+  collateralAmount: number,
+  borrowedAmount: number,
+  apy: number
+) {
+  if (!address) {
+    return;
+  }
+  const accountId = AccountId.fromString(address).toString();
+  const evmAddress = accountIdToEvmAddress(accountId);
+  console.log("evmAddress on sendLoanStatus", evmAddress);
+  const response = await axios.post(
+    `${BACKEND_URL}/user-loan-status/${address}`,
+    {
+      collateral_token: "dAAPL",
+      collateral_amount: collateralAmount,
+      borrowed_token: "HASH",
+      borrowed_amount: borrowedAmount,
+      apy: apy,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  if (response.status !== 200) {
+    console.error("Failed to send loan status:", response.status);
+    throw new Error("Failed to send loan status");
+  }
+  return response.data;
 }

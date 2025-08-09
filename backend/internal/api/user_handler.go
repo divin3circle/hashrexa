@@ -489,7 +489,104 @@ func (u *UserHandler) HandleGetMarketPriceAnalysis(w http.ResponseWriter, r *htt
 	}
 }
 
+func (u *UserHandler) HandleUpdateUserLoanStatus(w http.ResponseWriter, r *http.Request) {
+	MyPrivateKey := os.Getenv("MY_PRIVATE_KEY")
+	privateKey, err := hiero.PrivateKeyFromStringEd25519(MyPrivateKey)
+	if err != nil {
+		http.Error(w, "Failed to parse private key", http.StatusInternalServerError)
+		return
+	}
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	topicId, err := u.getUserTopicId(userAccountId)
+	if err != nil {
+		http.Error(w, "Failed to get user topic ID", http.StatusInternalServerError)
+		return
+	}
+	userData, err := u.getLatestMessageFromTopic(topicId)
+	if err != nil {
+		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		return
+	}
+	var user User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+		return
+	}
+	var newLoanStatus LoanStatus
+	err = json.NewDecoder(r.Body).Decode(&newLoanStatus)
+	if err != nil {
+		http.Error(w, "Failed to decode loan status", http.StatusInternalServerError)
+		return
+	}
+	user.LoanStatus = append(user.LoanStatus, newLoanStatus)
+	marshaledUser, err := json.Marshal(user)
+	if err != nil {
+		http.Error(w, "Failed to marshal user data", http.StatusInternalServerError)
+		return
+	}
+	topicID, err := hiero.TopicIDFromString(topicId)
+	if err != nil {
+		http.Error(w, "Failed to convert topic ID to Hedera topic ID", http.StatusInternalServerError)
+		return
+	}
+	topicMsgSubmitTx, _ := hiero.NewTopicMessageSubmitTransaction().
+		SetTransactionMemo("User updated loan status").
+		SetTopicID(topicID).
+		SetMessage(marshaledUser).
+		FreezeWith(u.Client)
 
+	topicMsgSubmitTxId := topicMsgSubmitTx.GetTransactionID()
+	fmt.Printf("The topic message submit transaction ID: %s\n", topicMsgSubmitTxId.String())
+	topicMsgSubmitTxSigned := topicMsgSubmitTx.Sign(privateKey)
+	topicMsgSubmitTxSubmitted, _ := topicMsgSubmitTxSigned.Execute(u.Client)
+	topicMsgSubmitTxReceipt, _ := topicMsgSubmitTxSubmitted.GetReceipt(u.Client)
+
+	topicMsgSeqNum := topicMsgSubmitTxReceipt.TopicSequenceNumber
+	fmt.Printf("Topic Message Sequence Number: %v\n", topicMsgSeqNum)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, `{"success": true, "message": "User updated loan status successfully", "userAccountId": "%s", "topicId": "%s"}`, userAccountId, topicId)
+}
+
+func (u *UserHandler) HandleGetUserLoanStatus(w http.ResponseWriter, r *http.Request) {
+	userAccountId := chi.URLParam(r, "userAccountId")
+	if userAccountId == "" {
+		http.Error(w, "Missing user account ID", http.StatusBadRequest)
+		return
+	}
+	topicId, err := u.getUserTopicId(userAccountId)
+	if err != nil {
+		http.Error(w, "Failed to get user topic ID", http.StatusInternalServerError)
+		return
+	}
+	userData, err := u.getLatestMessageFromTopic(topicId)
+	if err != nil {
+		http.Error(w, "Failed to get user data from topic", http.StatusInternalServerError)
+		return
+	}
+	var user User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		http.Error(w, "Failed to unmarshal user data", http.StatusInternalServerError)
+		return
+	}
+	loanStatus := user.LoanStatus
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(map[string][]LoanStatus{
+		"loanStatus": loanStatus,
+	})
+	if err != nil {
+		http.Error(w, "Failed to encode loan status", http.StatusInternalServerError)
+		return
+	}
+}
 
 func getUserPosition(userEvmAddress string) (UserPosition, error){
 	var marketId = "0xc6c8d3eb24d61523202abed6d47eb676e7f2fef743503b857f8559390318bb10"
@@ -631,11 +728,6 @@ func getMarketPosition() (MarketPosition, error) {
 	}, nil
 }
 
-
-// func (u *UserHandler) HandleUpdatePriceAnalysis(w http.ResponseWriter, r *http.Request) {
-
-// }
-
 func (u *UserHandler) UpdatePriceAnalysis(collateralTransacted, hashTransacted float64) (bool, error) {
 	privateKey, err := hiero.PrivateKeyFromStringEd25519(os.Getenv("MY_PRIVATE_KEY"))
 	if err != nil {
@@ -759,15 +851,6 @@ func (u *UserHandler) getUserTopicId(userAccountId string) (string, error) {
 	}
 	return string(topicId), nil
 }
-
-//func getContractId(contractId string) (hiero.ContractID, error) {
-//	contractID, err := hiero.ContractIDFromString(contractId)
-//	if err != nil {
-//		return hiero.ContractID{}, err
-//	}
-//
-//	return contractID, nil
-//}
 
 func (u *UserHandler) getUserTokenizedAssets(topicId string) ([]StockToken, error) {
 	userData, err := u.getLatestMessageFromTopic(topicId)

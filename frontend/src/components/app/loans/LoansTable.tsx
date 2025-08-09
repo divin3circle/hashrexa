@@ -1,3 +1,4 @@
+import { useUserLoanStatus } from "@/hooks/useTopicManager";
 import { CheckCircle, XCircle } from "lucide-react";
 
 const loanHistoryData = [
@@ -28,6 +29,8 @@ const loanHistoryData = [
 ];
 
 function LoansTable() {
+  const { userLoanStatus } = useUserLoanStatus();
+  console.log("userLoanStatus", userLoanStatus);
   return (
     <div className="bg-[#fffdf6] rounded-3xl border border-gray-200 overflow-hidden h-[400px]">
       <div className="p-6 ">
